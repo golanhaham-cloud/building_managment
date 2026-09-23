@@ -1,0 +1,26 @@
+@import url("https://fonts.googleapis.com/css2?family=Assistant:wght@400;500;600;700;800&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  direction: rtl;
+}
+
+body {
+  @apply bg-gray-50 text-gray-900;
+  font-family: "Assistant", system-ui, sans-serif;
+}
+
+.card {
+  @apply rounded-2xl bg-white shadow-sm border border-gray-100 p-4;
+}
+
+.btn-primary {
+  @apply bg-brand-600 text-white rounded-xl px-4 py-2 font-semibold hover:bg-brand-700 transition-colors;
+}
+
+.big-number {
+  @apply text-2xl font-extrabold tabular-nums;
+}
