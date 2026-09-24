@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentAppUser } from "@/lib/current-user";
+import { createProject } from "@/lib/actions";
 import type { ProjectStatus } from "@/lib/types";
 
 const STATUS_LABELS: Record<ProjectStatus, string> = {
@@ -24,6 +25,7 @@ function ils(n: number) {
 export default async function ProjectsPage() {
   const supabase = createClient();
   const appUser = await getCurrentAppUser();
+  const isAdmin = appUser?.role === "admin";
 
   const { data: projects } = await supabase
     .from("projects")
@@ -34,6 +36,39 @@ export default async function ProjectsPage() {
   return (
     <div className="p-4 space-y-4">
       <h1 className="text-xl font-extrabold">תוכניות לעתיד</h1>
+
+      {isAdmin && (
+        <details className="card">
+          <summary className="font-semibold cursor-pointer">+ תוכנית חדשה</summary>
+          <form action={createProject} className="space-y-2 mt-3">
+            <input
+              type="text"
+              name="title"
+              placeholder="שם הפרויקט"
+              className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm"
+              required
+            />
+            <textarea
+              name="description"
+              placeholder="תיאור"
+              className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm"
+              rows={2}
+            />
+            <div className="grid grid-cols-2 gap-2">
+              <input
+                type="number"
+                name="estimated_cost"
+                placeholder="עלות משוערת"
+                className="rounded-lg border border-gray-300 px-2 py-1.5 text-sm"
+              />
+              <input type="date" name="target_date" className="rounded-lg border border-gray-300 px-2 py-1.5 text-sm" />
+            </div>
+            <button type="submit" className="btn-primary w-full text-sm py-1.5">
+              הוסף/י תוכנית
+            </button>
+          </form>
+        </details>
+      )}
 
       <div className="space-y-3">
         {projects?.map((p) => {

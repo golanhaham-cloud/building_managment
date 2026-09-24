@@ -65,4 +65,3 @@ values (
 
 - Project ref: `deqqnsbldpvuryvzuhsi`
 - URL: `https://deqqnsbldpvuryvzuhsi.supabase.co`
-- 
