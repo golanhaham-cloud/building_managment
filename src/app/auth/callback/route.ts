@@ -7,7 +7,14 @@ export async function GET(request: Request) {
 
   if (code) {
     const supabase = createClient();
-    await supabase.auth.exchangeCodeForSession(code);
+    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    if (error) {
+      return NextResponse.redirect(
+        `${origin}/login?error=${encodeURIComponent(
+          "הקישור לא תקף יותר, כנראה כי הוא נפתח בדפדפן אחר מזה שביקש אותו. בקש/י קישור חדש ופתח/י אותו ב-Safari."
+        )}`
+      );
+    }
   }
 
   return NextResponse.redirect(`${origin}/dashboard`);
