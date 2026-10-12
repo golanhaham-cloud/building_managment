@@ -32,6 +32,12 @@ export default async function FinancesPage() {
       </div>
 
       {isAdmin && (
+        <Link href="/finances/import" className="card block text-center text-sm font-semibold text-brand-600">
+          📥 ייבוא תנועות מקובץ הבנק
+        </Link>
+      )}
+
+      {isAdmin && (
         <form action={addTransaction} className="card space-y-2">
           <div className="font-semibold text-sm">הוספת תנועה</div>
           <div className="grid grid-cols-2 gap-2">

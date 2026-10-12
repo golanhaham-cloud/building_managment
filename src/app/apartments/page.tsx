@@ -7,18 +7,20 @@ export default async function ApartmentsPage() {
 
   const { data: apartments } = await supabase
     .from("apartments")
-    .select("id, floor, apartment_number, is_rented, owner_resident_id")
+    .select("id, floor, apartment_number, is_rented, owner_resident_id, rooms, apartment_type")
     .eq("building_id", appUser?.building_id)
-    .order("floor", { ascending: false })
-    .order("apartment_number");
+    .order("floor", { ascending: false });
 
   const { data: residents } = await supabase
     .from("residents")
-    .select("id, apartment_id, full_name, ownership, is_primary_contact")
+    .select("id, apartment_id, full_name, ownership, is_primary_contact, is_committee")
     .in("apartment_id", (apartments ?? []).map((a) => a.id));
 
-  const byFloor = new Map<number, typeof apartments>();
-  for (const apt of apartments ?? []) {
+  const sortedApartments = [...(apartments ?? [])].sort(
+    (a, b) => Number(a.apartment_number) - Number(b.apartment_number)
+  );
+  const byFloor = new Map<number, typeof sortedApartments>();
+  for (const apt of sortedApartments) {
     if (!byFloor.has(apt.floor)) byFloor.set(apt.floor, []);
     byFloor.get(apt.floor)!.push(apt);
   }
@@ -31,7 +33,7 @@ export default async function ApartmentsPage() {
         .sort((a, b) => b[0] - a[0])
         .map(([floor, apts]) => (
           <div key={floor} className="card">
-            <div className="font-bold text-brand-700 mb-2">קומה {floor}</div>
+            <div className="font-bold text-brand-700 mb-2">{floor === 0 ? "קומת קרקע" : `קומה ${floor}`}</div>
             <div className="divide-y divide-gray-100">
               {apts!.map((apt) => {
                 const aptResidents = residents?.filter((r) => r.apartment_id === apt.id) ?? [];
@@ -41,12 +43,29 @@ export default async function ApartmentsPage() {
                 return (
                   <div key={apt.id} className="py-2">
                     <div className="flex items-center justify-between">
-                      <span className="font-semibold">דירה {apt.apartment_number}</span>
-                      {apt.is_rented && (
-                        <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">
-                          בשכירות
-                        </span>
-                      )}
+                      <span className="font-semibold">
+                        דירה {apt.apartment_number}
+                        {(apt.rooms || apt.apartment_type) && (
+                          <span className="text-xs font-normal text-gray-500">
+                            {" · "}
+                            {apt.rooms ? `${apt.rooms} חדרים` : ""}
+                            {apt.rooms && apt.apartment_type ? ", " : ""}
+                            {apt.apartment_type ?? ""}
+                          </span>
+                        )}
+                      </span>
+                      <span className="flex gap-1">
+                        {primary?.is_committee && (
+                          <span className="text-xs bg-brand-50 text-brand-700 px-2 py-0.5 rounded-full">
+                            ועד
+                          </span>
+                        )}
+                        {apt.is_rented && (
+                          <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">
+                            בשכירות
+                          </span>
+                        )}
+                      </span>
                     </div>
                     <div className="text-sm text-gray-600">
                       {primary ? primary.full_name : "לא הוזן דייר"}

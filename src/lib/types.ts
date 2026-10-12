@@ -34,6 +34,8 @@ export interface Apartment {
   is_rented: boolean;
   monthly_fee: number;
   owner_resident_id: string | null;
+  rooms: number | null;
+  apartment_type: string | null;
 }
 
 export interface Resident {
@@ -44,6 +46,7 @@ export interface Resident {
   phone: string | null;
   email: string | null;
   is_primary_contact: boolean;
+  is_committee: boolean;
 }
 
 export interface Transaction {
