@@ -43,6 +43,25 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  if (user) {
+    const { data: au } = await supabase
+      .from("app_users")
+      .select("id")
+      .eq("auth_id", user.id)
+      .maybeSingle();
+    const isClaim = request.nextUrl.pathname.startsWith("/claim");
+    if (!au && !isClaim) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/claim";
+      return NextResponse.redirect(url);
+    }
+    if (au && isClaim) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/dashboard";
+      return NextResponse.redirect(url);
+    }
+  }
+
   return response;
 }
 

@@ -11,6 +11,7 @@ const items = [
   { href: "/requests", label: "תקלות", icon: "🔧" },
   { href: "/projects", label: "תוכניות", icon: "📋" },
   { href: "/announcements", label: "הודעות", icon: "📢" },
+  { href: "/account", label: "חשבון", icon: "👤" },
 ];
 
 export default function BottomNav({ role }: { role: UserRole }) {
@@ -18,7 +19,7 @@ export default function BottomNav({ role }: { role: UserRole }) {
 
   return (
     <nav className="fixed bottom-0 inset-x-0 bg-white border-t border-gray-200 z-20">
-      <div className="mx-auto max-w-3xl grid grid-cols-6 text-[11px]">
+      <div className="mx-auto max-w-3xl grid grid-cols-7 text-[11px]">
         {items.map((item) => {
           const active = pathname.startsWith(item.href);
           return (
