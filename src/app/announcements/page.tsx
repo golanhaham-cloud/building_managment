@@ -1,6 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentAppUser } from "@/lib/current-user";
 import { createAnnouncement } from "@/lib/actions";
+import { saveAnnouncement } from "@/lib/manage-actions";
+import { ActionForm, SubmitButton } from "@/components/forms";
+import { inp } from "@/components/ui";
 
 export default async function AnnouncementsPage() {
   const supabase = createClient();
@@ -9,7 +12,7 @@ export default async function AnnouncementsPage() {
 
   const { data: announcements } = await supabase
     .from("announcements")
-    .select("id, title, body, is_important, created_at")
+    .select("id, title, body, is_important, created_at, row_version")
     .eq("building_id", appUser?.building_id)
     .order("created_at", { ascending: false });
 
@@ -56,6 +59,19 @@ export default async function AnnouncementsPage() {
             <div className="text-xs text-gray-400 mt-1">
               {new Date(a.created_at).toLocaleDateString("he-IL")}
             </div>
+            {isAdmin && (
+              <details className="mt-2">
+                <summary className="text-xs text-brand-600 cursor-pointer">עריכה</summary>
+                <ActionForm action={saveAnnouncement} keepOnSuccess className="space-y-2 mt-2">
+                  <input type="hidden" name="id" value={a.id} />
+                  <input type="hidden" name="row_version" value={a.row_version} />
+                  <input name="title" defaultValue={a.title} className={inp} required />
+                  <textarea name="body" defaultValue={a.body} rows={3} className={inp} required />
+                  <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="is_important" defaultChecked={a.is_important} /> הודעה חשובה</label>
+                  <SubmitButton>שמור שינויים</SubmitButton>
+                </ActionForm>
+              </details>
+            )}
           </div>
         ))}
         {!announcements?.length && <p className="text-gray-400 text-sm">אין הודעות חדשות.</p>}

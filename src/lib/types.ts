@@ -36,6 +36,9 @@ export interface Apartment {
   owner_resident_id: string | null;
   rooms: number | null;
   apartment_type: string | null;
+  occupancy_status: "owner_occupied" | "rented" | "vacant";
+  occupants_count: number | null;
+  row_version: number;
 }
 
 export interface Resident {
@@ -47,6 +50,11 @@ export interface Resident {
   email: string | null;
   is_primary_contact: boolean;
   is_committee: boolean;
+  is_active: boolean;
+  lives_here: boolean;
+  move_in_date: string | null;
+  move_out_date: string | null;
+  row_version: number;
 }
 
 export interface Transaction {

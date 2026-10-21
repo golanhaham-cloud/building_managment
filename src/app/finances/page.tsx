@@ -1,15 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentAppUser } from "@/lib/current-user";
-import { addTransaction } from "@/lib/actions";
+import { addTransactionAction, correctTransaction, voidTransaction } from "@/lib/manage-actions";
+import { ActionForm, SubmitButton } from "@/components/forms";
+import AuditList from "@/components/AuditList";
+import { userNameMap, type AuditEntry } from "@/lib/audit";
+import { inp, lbl, btnDanger, ils } from "@/components/ui";
 import Link from "next/link";
-
-function ils(n: number) {
-  return new Intl.NumberFormat("he-IL", {
-    style: "currency",
-    currency: "ILS",
-    maximumFractionDigits: 0,
-  }).format(n);
-}
 
 export default async function FinancesPage() {
   const supabase = createClient();
@@ -18,9 +14,41 @@ export default async function FinancesPage() {
 
   const { data: tx } = await supabase
     .from("transactions")
-    .select("id, type, date, amount, description, categories(name), suppliers(name)")
+    .select("id, type, date, amount, description, notes, category_id, supplier_id, row_version, voided_at, void_reason, fee_year, fee_month, categories(name), suppliers(name), apartments:source_apartment_id(apartment_number)")
     .eq("building_id", appUser?.building_id)
-    .order("date", { ascending: false });
+    .order("date", { ascending: false })
+    .order("created_at", { ascending: false });
+
+  const [{ data: categories }, { data: suppliers }] = isAdmin
+    ? await Promise.all([
+        supabase.from("categories").select("id, name, type").eq("building_id", appUser?.building_id).order("name"),
+        supabase.from("suppliers").select("id, name").eq("building_id", appUser?.building_id).order("name"),
+      ])
+    : [{ data: [] as any[] }, { data: [] as any[] }];
+
+  let history = new Map<string, AuditEntry[]>();
+  let names = new Map<string, string>();
+  if (isAdmin && tx?.length) {
+    const { data: log } = await supabase
+      .from("audit_log")
+      .select("*")
+      .eq("entity_type", "transactions")
+      .in("entity_id", tx.map((t: any) => t.id))
+      .order("created_at", { ascending: false });
+    for (const e of (log ?? []) as AuditEntry[]) {
+      const arr = history.get(e.entity_id!) ?? [];
+      arr.push(e);
+      history.set(e.entity_id!, arr);
+    }
+    names = await userNameMap(supabase, (log ?? []).map((l: any) => l.user_id));
+  }
+
+  const catOptions = (categories ?? []).map((c: any) => (
+    <option key={c.id} value={c.id}>{c.name}</option>
+  ));
+  const supOptions = (suppliers ?? []).map((c: any) => (
+    <option key={c.id} value={c.id}>{c.name}</option>
+  ));
 
   return (
     <div className="p-4 space-y-4">
@@ -38,63 +66,110 @@ export default async function FinancesPage() {
       )}
 
       {isAdmin && (
-        <form action={addTransaction} className="card space-y-2">
-          <div className="font-semibold text-sm">הוספת תנועה</div>
-          <div className="grid grid-cols-2 gap-2">
-            <select name="type" className="rounded-lg border border-gray-300 px-2 py-1.5 text-sm" required>
-              <option value="expense">הוצאה</option>
-              <option value="income">הכנסה</option>
-            </select>
-            <input
-              type="date"
-              name="date"
-              defaultValue={new Date().toISOString().slice(0, 10)}
-              className="rounded-lg border border-gray-300 px-2 py-1.5 text-sm"
-              required
-            />
-          </div>
-          <input
-            type="number"
-            name="amount"
-            step="0.01"
-            placeholder="סכום בש״ח"
-            className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm"
-            required
-          />
-          <input
-            type="text"
-            name="description"
-            placeholder="תיאור (למשל: ניקיון חדר מדרגות)"
-            className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm"
-            required
-          />
-          <button type="submit" className="btn-primary w-full text-sm py-1.5">
-            הוסף/י תנועה
-          </button>
-        </form>
+        <details className="card">
+          <summary className="font-semibold cursor-pointer text-sm">+ הוספת תנועה</summary>
+          <ActionForm action={addTransactionAction} className="space-y-2 mt-3">
+            <div className="grid grid-cols-2 gap-2">
+              <select name="type" className={inp} required>
+                <option value="expense">הוצאה</option>
+                <option value="income">הכנסה</option>
+              </select>
+              <input type="date" name="date" defaultValue={new Date().toISOString().slice(0, 10)} className={inp} required />
+            </div>
+            <input type="number" name="amount" step="0.01" min="0.01" placeholder="סכום בש״ח" className={inp} required />
+            <input type="text" name="description" placeholder="תיאור (למשל: ניקיון חדר מדרגות)" className={inp} required />
+            <div className="grid grid-cols-2 gap-2">
+              <select name="category_id" className={inp}>
+                <option value="">קטגוריה (אופציונלי)</option>
+                {catOptions}
+              </select>
+              <select name="supplier_id" className={inp}>
+                <option value="">ספק (אופציונלי)</option>
+                {supOptions}
+              </select>
+            </div>
+            <input type="text" name="notes" placeholder="הערה (גלויה לדיירים)" className={inp} />
+            <SubmitButton>הוסף תנועה</SubmitButton>
+          </ActionForm>
+        </details>
       )}
 
       <div className="card divide-y divide-gray-100">
-        {tx?.map((t: any) => (
-          <div key={t.id} className="py-3 flex items-center justify-between">
-            <div>
-              <div className="font-semibold">{t.description ?? t.categories?.name}</div>
-              <div className="text-xs text-gray-400">
-                {new Date(t.date).toLocaleDateString("he-IL")}
-                {t.categories?.name ? ` · ${t.categories.name}` : ""}
-                {t.suppliers?.name ? ` · ${t.suppliers.name}` : ""}
+        {tx?.map((t: any) => {
+          const voided = !!t.voided_at;
+          return (
+            <div key={t.id} className="py-3">
+              <div className="flex items-center justify-between">
+                <div className={voided ? "opacity-60" : ""}>
+                  <div className={`font-semibold ${voided ? "line-through" : ""}`}>{t.description ?? t.categories?.name}</div>
+                  <div className="text-xs text-gray-400">
+                    {new Date(t.date).toLocaleDateString("he-IL")}
+                    {t.categories?.name ? ` · ${t.categories.name}` : ""}
+                    {t.suppliers?.name ? ` · ${t.suppliers.name}` : ""}
+                    {t.apartments?.apartment_number ? ` · דירה ${t.apartments.apartment_number}` : ""}
+                    {t.fee_month ? ` · ועד ${t.fee_month}/${t.fee_year}` : ""}
+                  </div>
+                  {t.notes && <div className="text-xs text-gray-500">{t.notes}</div>}
+                  {voided && <div className="text-xs text-status-unpaid">בוטל: {t.void_reason}</div>}
+                </div>
+                <div className={`font-bold tabular-nums ${voided ? "text-gray-400 line-through" : t.type === "income" ? "text-status-paid" : "text-status-unpaid"}`}>
+                  {t.type === "income" ? "+" : "-"}
+                  {ils(t.amount)}
+                </div>
               </div>
+
+              {isAdmin && !voided && (
+                <details className="mt-2">
+                  <summary className="text-xs text-brand-600 cursor-pointer">עריכה / ביטול / היסטוריה</summary>
+                  <div className="mt-2 space-y-3">
+                    <ActionForm action={correctTransaction} keepOnSuccess className="space-y-2 border border-gray-100 rounded-lg p-2">
+                      <div className="text-xs font-semibold">תיקון תנועה (נדרשת סיבה, והערך הקודם נשמר)</div>
+                      <input type="hidden" name="id" value={t.id} />
+                      <input type="hidden" name="row_version" value={t.row_version} />
+                      <div className="grid grid-cols-2 gap-2">
+                        <div><label className={lbl}>תאריך</label><input type="date" name="date" defaultValue={t.date} className={inp} required /></div>
+                        <div><label className={lbl}>סכום</label><input type="number" step="0.01" min="0.01" name="amount" defaultValue={t.amount} className={inp} required /></div>
+                      </div>
+                      <input type="text" name="description" defaultValue={t.description ?? ""} placeholder="תיאור" className={inp} />
+                      <div className="grid grid-cols-2 gap-2">
+                        <select name="category_id" defaultValue={t.category_id ?? ""} className={inp}>
+                          <option value="">ללא קטגוריה</option>
+                          {catOptions}
+                        </select>
+                        <select name="supplier_id" defaultValue={t.supplier_id ?? ""} className={inp}>
+                          <option value="">ללא ספק</option>
+                          {supOptions}
+                        </select>
+                      </div>
+                      <input type="text" name="notes" defaultValue={t.notes ?? ""} placeholder="הערה (גלויה לדיירים)" className={inp} />
+                      <input type="text" name="reason" placeholder="סיבת התיקון (חובה)" className={inp} required minLength={3} />
+                      <SubmitButton confirmText="לשמור את התיקון? הערך הקודם יישמר ביומן.">שמור תיקון</SubmitButton>
+                    </ActionForm>
+
+                    <ActionForm action={voidTransaction} className="space-y-2 border border-red-100 rounded-lg p-2">
+                      <div className="text-xs font-semibold text-status-unpaid">ביטול תנועה (לא נמחקת, רק לא נספרת ביתרה)</div>
+                      <input type="hidden" name="id" value={t.id} />
+                      <input type="hidden" name="row_version" value={t.row_version} />
+                      <input type="text" name="reason" placeholder="סיבת הביטול (חובה)" className={inp} required minLength={3} />
+                      <SubmitButton className={btnDanger} confirmText={`לבטל את התנועה "${t.description ?? ""}" בסך ${ils(t.amount)}?`}>בטל תנועה</SubmitButton>
+                    </ActionForm>
+
+                    <div>
+                      <div className="text-xs font-semibold mb-1">היסטוריית שינויים</div>
+                      <AuditList entries={history.get(t.id) ?? []} names={names} showEntity={false} />
+                    </div>
+                  </div>
+                </details>
+              )}
+              {isAdmin && voided && (
+                <details className="mt-2">
+                  <summary className="text-xs text-brand-600 cursor-pointer">היסטוריה</summary>
+                  <div className="mt-2"><AuditList entries={history.get(t.id) ?? []} names={names} showEntity={false} /></div>
+                </details>
+              )}
             </div>
-            <div
-              className={`font-bold tabular-nums ${
-                t.type === "income" ? "text-status-paid" : "text-status-unpaid"
-              }`}
-            >
-              {t.type === "income" ? "+" : "-"}
-              {ils(t.amount)}
-            </div>
-          </div>
-        ))}
+          );
+        })}
         {!tx?.length && <p className="text-gray-400 text-sm py-4">אין עדיין תנועות רשומות.</p>}
       </div>
     </div>

@@ -1,6 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentAppUser } from "@/lib/current-user";
-import { createRequest, updateRequestStatus } from "@/lib/actions";
+import { createRequest } from "@/lib/actions";
+import { saveRequest } from "@/lib/manage-actions";
+import { ActionForm, SubmitButton } from "@/components/forms";
+import { inp } from "@/components/ui";
 import type { RequestStatus } from "@/lib/types";
 
 const STATUS_LABELS: Record<RequestStatus, string> = {
@@ -21,7 +24,7 @@ export default async function RequestsPage() {
 
   const { data: requests } = await supabase
     .from("requests")
-    .select("id, title, description, status, created_at, apartments(apartment_number)")
+    .select("id, title, description, category, status, created_at, row_version, apartments(apartment_number)")
     .eq("building_id", appUser?.building_id)
     .order("created_at", { ascending: false });
 
@@ -71,19 +74,24 @@ export default async function RequestsPage() {
             </div>
 
             {isAdmin && (
-              <form action={updateRequestStatus} className="flex items-center gap-2 mt-2">
-                <input type="hidden" name="request_id" value={r.id} />
-                <select name="status" defaultValue={r.status} className="rounded-lg border border-gray-300 px-2 py-1 text-xs flex-1">
-                  {STATUS_OPTIONS.map((s) => (
-                    <option key={s} value={s}>
-                      {STATUS_LABELS[s]}
-                    </option>
-                  ))}
-                </select>
-                <button type="submit" className="text-xs bg-brand-600 text-white rounded-lg px-3 py-1.5">
-                  עדכן/י
-                </button>
-              </form>
+              <details className="mt-2">
+                <summary className="text-xs text-brand-600 cursor-pointer">טיפול ועריכה</summary>
+                <ActionForm action={saveRequest} keepOnSuccess className="space-y-2 mt-2">
+                  <input type="hidden" name="id" value={r.id} />
+                  <input type="hidden" name="row_version" value={r.row_version} />
+                  <input type="hidden" name="prev_status" value={r.status} />
+                  <input name="title" defaultValue={r.title} className={inp} required />
+                  <input name="category" defaultValue={r.category ?? ""} placeholder="קטגוריה" className={inp} />
+                  <textarea name="description" defaultValue={r.description ?? ""} rows={2} className={inp} />
+                  <select name="status" defaultValue={r.status} className={inp}>
+                    {STATUS_OPTIONS.map((st) => (
+                      <option key={st} value={st}>{STATUS_LABELS[st]}</option>
+                    ))}
+                  </select>
+                  <input name="comment" placeholder="הערת טיפול (נשמרת בהיסטוריית הפנייה)" className={inp} />
+                  <SubmitButton>שמור</SubmitButton>
+                </ActionForm>
+              </details>
             )}
           </div>
         ))}

@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentAppUser } from "@/lib/current-user";
+import { OCCUPANCY_LABELS } from "@/lib/errors";
 
 export default async function ApartmentsPage() {
   const supabase = createClient();
@@ -7,20 +8,15 @@ export default async function ApartmentsPage() {
 
   const { data: apartments } = await supabase
     .from("apartments")
-    .select("id, floor, apartment_number, is_rented, owner_resident_id, rooms, apartment_type")
-    .eq("building_id", appUser?.building_id)
-    .order("floor", { ascending: false });
+    .select("id, floor, apartment_number, occupancy_status, owner_resident_id, rooms, apartment_type, occupants_count")
+    .eq("building_id", appUser?.building_id);
 
-  const { data: residents } = await supabase
-    .from("residents")
-    .select("id, apartment_id, full_name, ownership, is_primary_contact, is_committee")
-    .in("apartment_id", (apartments ?? []).map((a) => a.id));
+  const { data: people } = await supabase.rpc("get_resident_directory");
+  const residents = (people ?? []) as any[];
 
-  const sortedApartments = [...(apartments ?? [])].sort(
-    (a, b) => Number(a.apartment_number) - Number(b.apartment_number)
-  );
-  const byFloor = new Map<number, typeof sortedApartments>();
-  for (const apt of sortedApartments) {
+  const sorted = [...(apartments ?? [])].sort((a, b) => Number(a.apartment_number) - Number(b.apartment_number));
+  const byFloor = new Map<number, typeof sorted>();
+  for (const apt of sorted) {
     if (!byFloor.has(apt.floor)) byFloor.set(apt.floor, []);
     byFloor.get(apt.floor)!.push(apt);
   }
@@ -35,11 +31,12 @@ export default async function ApartmentsPage() {
           <div key={floor} className="card">
             <div className="font-bold text-brand-700 mb-2">{floor === 0 ? "קומת קרקע" : `קומה ${floor}`}</div>
             <div className="divide-y divide-gray-100">
-              {apts!.map((apt) => {
-                const aptResidents = residents?.filter((r) => r.apartment_id === apt.id) ?? [];
-                const owner = residents?.find((r) => r.id === apt.owner_resident_id);
-                const primary = aptResidents.find((r) => r.is_primary_contact) ?? aptResidents[0];
-
+              {apts.map((apt) => {
+                const aptPeople = residents.filter((r) => r.apartment_id === apt.id);
+                const living = aptPeople.filter((r) => r.lives_here);
+                const owners = aptPeople.filter((r) => r.ownership === "owner");
+                const primary = living.find((r) => r.is_primary_contact) ?? living[0];
+                const rented = apt.occupancy_status === "rented";
                 return (
                   <div key={apt.id} className="py-2">
                     <div className="flex items-center justify-between">
@@ -55,24 +52,26 @@ export default async function ApartmentsPage() {
                         )}
                       </span>
                       <span className="flex gap-1">
-                        {primary?.is_committee && (
-                          <span className="text-xs bg-brand-50 text-brand-700 px-2 py-0.5 rounded-full">
-                            ועד
-                          </span>
-                        )}
-                        {apt.is_rented && (
-                          <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">
-                            בשכירות
+                        {primary?.is_committee && <span className="text-xs bg-brand-50 text-brand-700 px-2 py-0.5 rounded-full">ועד</span>}
+                        {apt.occupancy_status !== "owner_occupied" && (
+                          <span className={`text-xs px-2 py-0.5 rounded-full ${rented ? "bg-amber-100 text-amber-700" : "bg-gray-100 text-gray-600"}`}>
+                            {rented ? "בשכירות" : OCCUPANCY_LABELS[apt.occupancy_status]}
                           </span>
                         )}
                       </span>
                     </div>
                     <div className="text-sm text-gray-600">
-                      {primary ? primary.full_name : "לא הוזן דייר"}
-                      {primary?.ownership === "tenant" && " (שוכר/ת)"}
+                      {living.length
+                        ? living.map((r) => r.full_name + (r.ownership === "tenant" ? " (שוכר/ת)" : "")).join(", ")
+                        : apt.occupancy_status === "vacant"
+                        ? "הדירה ריקה"
+                        : "לא הוזן דייר"}
+                      {apt.occupants_count ? ` · ${apt.occupants_count} נפשות` : ""}
                     </div>
-                    {apt.is_rented && owner && (
-                      <div className="text-xs text-gray-400">בעל/ת הדירה: {owner.full_name}</div>
+                    {rented && owners.filter((o) => !o.lives_here).length > 0 && (
+                      <div className="text-xs text-gray-400">
+                        בעל/ת הדירה: {owners.filter((o) => !o.lives_here).map((o) => o.full_name).join(", ")}
+                      </div>
                     )}
                   </div>
                 );

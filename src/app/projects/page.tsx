@@ -1,6 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentAppUser } from "@/lib/current-user";
 import { createProject } from "@/lib/actions";
+import { saveProject } from "@/lib/manage-actions";
+import { ActionForm, SubmitButton } from "@/components/forms";
+import { inp, lbl } from "@/components/ui";
 import type { ProjectStatus } from "@/lib/types";
 
 const STATUS_LABELS: Record<ProjectStatus, string> = {
@@ -29,7 +32,7 @@ export default async function ProjectsPage() {
 
   const { data: projects } = await supabase
     .from("projects")
-    .select("id, title, status, estimated_cost, funded_so_far, target_date, description")
+    .select("id, title, status, estimated_cost, funded_so_far, target_date, description, row_version")
     .eq("building_id", appUser?.building_id)
     .order("created_at", { ascending: false });
 
@@ -86,6 +89,26 @@ export default async function ProjectsPage() {
                   <div>צפי ביצוע: {new Date(p.target_date).toLocaleDateString("he-IL")}</div>
                 )}
               </div>
+              {isAdmin && (
+                <details className="mt-2">
+                  <summary className="text-xs text-brand-600 cursor-pointer">עריכה</summary>
+                  <ActionForm action={saveProject} keepOnSuccess className="space-y-2 mt-2">
+                    <input type="hidden" name="id" value={p.id} />
+                    <input type="hidden" name="row_version" value={p.row_version} />
+                    <input name="title" defaultValue={p.title} className={inp} required />
+                    <textarea name="description" defaultValue={p.description ?? ""} rows={2} className={inp} />
+                    <select name="status" defaultValue={p.status} className={inp}>
+                      {Object.entries(STATUS_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                    </select>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div><label className={lbl}>עלות משוערת</label><input name="estimated_cost" type="number" step="0.01" min="0" defaultValue={p.estimated_cost ?? ""} className={inp} /></div>
+                      <div><label className={lbl}>נצבר עד כה</label><input name="funded_so_far" type="number" step="0.01" min="0" defaultValue={p.funded_so_far ?? 0} className={inp} /></div>
+                    </div>
+                    <div><label className={lbl}>תאריך יעד</label><input name="target_date" type="date" defaultValue={p.target_date ?? ""} className={inp} /></div>
+                    <SubmitButton>שמור שינויים</SubmitButton>
+                  </ActionForm>
+                </details>
+              )}
             </div>
           );
         })}

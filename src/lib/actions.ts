@@ -12,101 +12,6 @@ async function requireAdmin() {
   return appUser;
 }
 
-async function logAction(
-  buildingId: string,
-  userId: string,
-  actionType: string,
-  entityType: string,
-  entityId: string | null,
-  newValue: Record<string, unknown>
-) {
-  const supabase = createClient();
-  await supabase.from("audit_log").insert({
-    building_id: buildingId,
-    user_id: userId,
-    action_type: actionType,
-    entity_type: entityType,
-    entity_id: entityId,
-    new_value: newValue,
-  });
-}
-
-export async function addTransaction(formData: FormData) {
-  const appUser = await requireAdmin();
-  const supabase = createClient();
-
-  const type = formData.get("type") as "income" | "expense";
-  const amount = Number(formData.get("amount"));
-  const date = formData.get("date") as string;
-  const description = formData.get("description") as string;
-
-  const { data, error } = await supabase
-    .from("transactions")
-    .insert({
-      building_id: appUser.building_id,
-      type,
-      amount,
-      date,
-      description,
-      entered_by: appUser.id,
-    })
-    .select("id")
-    .single();
-
-  if (error) throw new Error(error.message);
-
-  await logAction(appUser.building_id!, appUser.id, "create", "transaction", data.id, {
-    type,
-    amount,
-    description,
-  });
-
-  revalidatePath("/finances");
-  revalidatePath("/dashboard");
-}
-
-export async function markPayment(formData: FormData) {
-  const appUser = await requireAdmin();
-  const supabase = createClient();
-
-  const apartmentId = formData.get("apartment_id") as string;
-  const year = Number(formData.get("year"));
-  const month = Number(formData.get("month"));
-  const amountDue = Number(formData.get("amount_due"));
-  const amountPaid = Number(formData.get("amount_paid"));
-
-  let status: "paid" | "partial" | "unpaid" = "unpaid";
-  if (amountPaid >= amountDue && amountDue > 0) status = "paid";
-  else if (amountPaid > 0) status = "partial";
-
-  const { error } = await supabase.from("monthly_payments").upsert(
-    {
-      apartment_id: apartmentId,
-      year,
-      month,
-      amount_due: amountDue,
-      amount_paid: amountPaid,
-      status,
-      paid_date: amountPaid > 0 ? new Date().toISOString().slice(0, 10) : null,
-      updated_by: appUser.id,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: "apartment_id,year,month" }
-  );
-
-  if (error) throw new Error(error.message);
-
-  await logAction(appUser.building_id!, appUser.id, "update", "monthly_payment", apartmentId, {
-    year,
-    month,
-    amount_paid: amountPaid,
-    status,
-  });
-
-  revalidatePath("/payments");
-  revalidatePath("/dashboard");
-}
-
 export async function createProject(formData: FormData) {
   const appUser = await requireAdmin();
   const supabase = createClient();
@@ -131,7 +36,6 @@ export async function createProject(formData: FormData) {
 
   if (error) throw new Error(error.message);
 
-  await logAction(appUser.building_id!, appUser.id, "create", "project", data.id, { title });
 
   revalidatePath("/projects");
 }
@@ -156,7 +60,6 @@ export async function updateRequestStatus(formData: FormData) {
     updated_by: appUser.id,
   });
 
-  await logAction(appUser.building_id!, appUser.id, "update", "request", requestId, { status });
 
   revalidatePath("/requests");
 }
@@ -216,7 +119,6 @@ export async function createAnnouncement(formData: FormData) {
 
   if (error) throw new Error(error.message);
 
-  await logAction(appUser.building_id!, appUser.id, "create", "announcement", data.id, { title });
 
   revalidatePath("/announcements");
 }
@@ -241,13 +143,14 @@ export async function importTransactions(rows: ImportRowInput[]) {
       r.amount > 0 &&
       (r.type === "income" || r.type === "expense")
   );
-  if (!valid.length) return { inserted: 0, skipped: rows.length };
+  if (!valid.length) return { inserted: 0, skipped: rows.length, unlinked: 0 };
 
   const dates = valid.map((r) => r.date).sort();
   const { data: existing } = await supabase
     .from("transactions")
     .select("date, amount, type, description")
     .eq("building_id", appUser.building_id)
+    .is("voided_at", null)
     .gte("date", dates[0])
     .lte("date", dates[dates.length - 1]);
 
@@ -259,74 +162,54 @@ export async function importTransactions(rows: ImportRowInput[]) {
     seen.set(k, (seen.get(k) ?? 0) + 1);
   }
 
-  const toInsert: ImportRowInput[] = [];
+  let inserted = 0;
+  let unlinked = 0;
   for (const r of valid) {
     const k = key(r.date, r.amount, r.type, r.description);
     const n = seen.get(k) ?? 0;
     if (n > 0) {
       seen.set(k, n - 1);
-    } else {
-      toInsert.push(r);
+      continue;
     }
-  }
-
-  if (toInsert.length) {
-    const { error } = await supabase.from("transactions").insert(
-      toInsert.map((r) => ({
-        building_id: appUser.building_id,
-        type: r.type,
-        amount: r.amount,
-        date: r.date,
-        description: r.description,
-        notes: "יובא מקובץ בנק",
-        entered_by: appUser.id,
-      }))
-    );
-    if (error) throw new Error(error.message);
-
-    for (const r of toInsert) {
-      if (!r.mark_payment || !r.apartment_id || r.type !== "income") continue;
-      const year = Number(r.date.slice(0, 4));
-      const month = Number(r.date.slice(5, 7));
-      const { data: apt } = await supabase
-        .from("apartments")
-        .select("monthly_fee")
-        .eq("id", r.apartment_id)
-        .single();
-      const { data: cur } = await supabase
+    const year = Number(r.date.slice(0, 4));
+    const month = Number(r.date.slice(5, 7));
+    let feeYear: number | null = null;
+    let feeMonth: number | null = null;
+    if (r.mark_payment && r.apartment_id && r.type === "income") {
+      const { data: charge } = await supabase
         .from("monthly_payments")
-        .select("amount_due, amount_paid")
+        .select("id")
         .eq("apartment_id", r.apartment_id)
         .eq("year", year)
         .eq("month", month)
         .maybeSingle();
-      const due = Number(cur?.amount_due ?? apt?.monthly_fee ?? 0);
-      const paid = Number(cur?.amount_paid ?? 0) + r.amount;
-      const status = paid >= due && due > 0 ? "paid" : paid > 0 ? "partial" : "unpaid";
-      await supabase.from("monthly_payments").upsert(
-        {
-          apartment_id: r.apartment_id,
-          year,
-          month,
-          amount_due: due,
-          amount_paid: paid,
-          status,
-          paid_date: r.date,
-          updated_by: appUser.id,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: "apartment_id,year,month" }
-      );
+      if (charge) {
+        feeYear = year;
+        feeMonth = month;
+      } else {
+        unlinked++;
+      }
     }
+    const { error } = await supabase.rpc("create_transaction", {
+      p_type: r.type,
+      p_date: r.date,
+      p_amount: r.amount,
+      p_description: r.description || null,
+      p_category: null,
+      p_supplier: null,
+      p_apartment: r.type === "income" ? r.apartment_id : null,
+      p_fee_year: feeYear,
+      p_fee_month: feeMonth,
+      p_notes: "יובא מקובץ בנק",
+      p_payment_method: "bank",
+      p_key: null,
+    });
+    if (error) throw new Error(error.message);
+    inserted++;
   }
-
-  await logAction(appUser.building_id!, appUser.id, "import", "transaction", null, {
-    inserted: toInsert.length,
-    skipped: valid.length - toInsert.length,
-  });
 
   revalidatePath("/finances");
   revalidatePath("/payments");
   revalidatePath("/dashboard");
-  return { inserted: toInsert.length, skipped: rows.length - toInsert.length };
+  return { inserted, skipped: valid.length - inserted, unlinked };
 }

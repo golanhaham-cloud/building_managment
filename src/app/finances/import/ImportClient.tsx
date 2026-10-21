@@ -194,7 +194,7 @@ export default function ImportClient({ apartments }: { apartments: Apt[] }) {
           mark_payment: r.markPayment && r.type === "income" && !!r.apartmentId,
         }))
       );
-      setMsg(`נשמרו ${res.inserted} תנועות. דולגו ${res.skipped} תנועות שכבר קיימות.`);
+      setMsg(`נשמרו ${res.inserted} תנועות. דולגו ${res.skipped} תנועות שכבר קיימות.` + (res.unlinked ? ` ל-${res.unlinked} תשלומים לא נוצר חיוב ועד באותו חודש, ולכן הם נרשמו כהכנסה בלבד, בלי עדכון עמוד תשלומי הוועד.` : ""));
       setRows(null);
       setGrid(null);
     } catch (e: any) {

@@ -14,13 +14,22 @@ const items = [
   { href: "/account", label: "חשבון", icon: "👤" },
 ];
 
+const adminItems = [
+  { href: "/dashboard", label: "ראשי", icon: "🏠" },
+  { href: "/finances", label: "כספים", icon: "💰" },
+  { href: "/apartments", label: "דיירים", icon: "🏢" },
+  { href: "/requests", label: "תקלות", icon: "🔧" },
+  { href: "/manage", label: "ניהול", icon: "⚙️" },
+];
+
 export default function BottomNav({ role }: { role: UserRole }) {
   const pathname = usePathname();
+  const list = role === "admin" ? adminItems : items;
 
   return (
     <nav className="fixed bottom-0 inset-x-0 bg-white border-t border-gray-200 z-20">
-      <div className="mx-auto max-w-3xl grid grid-cols-7 text-[11px]">
-        {items.map((item) => {
+      <div className={`mx-auto max-w-3xl grid ${role === "admin" ? "grid-cols-5" : "grid-cols-7"} text-[11px]`}>
+        {list.map((item) => {
           const active = pathname.startsWith(item.href);
           return (
             <Link
