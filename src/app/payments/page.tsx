@@ -58,16 +58,16 @@ export default async function PaymentsPage({ searchParams }: { searchParams: { y
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-extrabold">תשלומי ועד הבית</h1>
         {isAdmin && (
-          <Link href={`/manage/fees?year=${year}&month=${month}`} className="text-sm text-brand-600 font-semibold">
+          <Link href={`/manage/fees?year=${year}&month=${month}`} className="inline-flex items-center min-h-[44px] text-sm text-brand-700 font-semibold">
             תעריפים וחיובים ←
           </Link>
         )}
       </div>
 
       <div className="flex items-center justify-between card py-3">
-        <Link href={`/payments?year=${prev.year}&month=${prev.month}`} className="text-brand-600">→ חודש קודם</Link>
+        <Link href={`/payments?year=${prev.year}&month=${prev.month}`} className="text-brand-700 inline-flex items-center min-h-[44px]">→ חודש קודם</Link>
         <span className="font-semibold">{monthName(month)} {year}</span>
-        <Link href={`/payments?year=${next.year}&month=${next.month}`} className="text-brand-600">חודש הבא ←</Link>
+        <Link href={`/payments?year=${next.year}&month=${next.month}`} className="text-brand-700 inline-flex items-center min-h-[44px]">חודש הבא ←</Link>
       </div>
 
       <div className="card space-y-1">
@@ -112,7 +112,7 @@ export default async function PaymentsPage({ searchParams }: { searchParams: { y
             <div key={apt.id} className="py-3">
               <div className="flex items-center justify-between">
                 <span className="font-semibold">
-                  דירה {apt.apartment_number} <span className="text-gray-400 text-xs">(קומה {apt.floor})</span>
+                  דירה {apt.apartment_number} <span className="text-gray-500 text-xs">(קומה {apt.floor})</span>
                 </span>
                 {o?.has_charge ? (
                   <span className="flex items-center gap-2 text-sm">
@@ -120,13 +120,13 @@ export default async function PaymentsPage({ searchParams }: { searchParams: { y
                     <span className={`inline-block w-2.5 h-2.5 rounded-full ${DOT[st!.dot]}`} title={st!.label} />
                   </span>
                 ) : (
-                  <span className="text-sm text-gray-400">
+                  <span className="text-sm text-gray-500">
                     {o?.tariff_amount == null ? "לא הוגדר" : `תעריף ${ils(o.tariff_amount)} · טרם נוצר חיוב`}
                   </span>
                 )}
               </div>
               {o?.has_charge && (
-                <div className="text-xs text-gray-400">
+                <div className="text-xs text-gray-500">
                   חיוב {ils(o.charge_amount)}
                   {adj !== 0 && ` · ${adj < 0 ? "זיכוי" : "חיוב נוסף"} ${ils(Math.abs(adj))}`}
                   {` · נרשם ${ils(o.paid_amount)} מתוך ${ils(Number(o.charge_amount) + adj)}`}
@@ -135,23 +135,23 @@ export default async function PaymentsPage({ searchParams }: { searchParams: { y
 
               {isAdmin && o?.has_charge && (
                 <details className="mt-2">
-                  <summary className="text-xs text-brand-600 cursor-pointer">רישום תשלום שהתקבל</summary>
+                  <summary className="text-sm text-brand-700 cursor-pointer">רישום תשלום שהתקבל</summary>
                   <ActionForm action={recordFeePayment} className="space-y-2 mt-2">
                     <input type="hidden" name="apartment_id" value={apt.id} />
                     <input type="hidden" name="year" value={year} />
                     <input type="hidden" name="month" value={month} />
                     <div className="grid grid-cols-2 gap-2">
-                      <div><label className={lbl}>סכום שהתקבל</label><input type="number" name="amount" step="0.01" min="0.01" className={inp} required /></div>
-                      <div><label className={lbl}>תאריך</label><input type="date" name="date" defaultValue={now.toISOString().slice(0, 10)} className={inp} required /></div>
+                      <div><label className={lbl}>סכום שהתקבל</label><input type="number" aria-label="סכום שהתקבל" name="amount" step="0.01" min="0.01" className={inp} required /></div>
+                      <div><label className={lbl}>תאריך</label><input type="date" aria-label="תאריך" name="date" defaultValue={now.toISOString().slice(0, 10)} className={inp} required /></div>
                     </div>
-                    <select name="method" className={inp} defaultValue="">
+                    <select name="method" aria-label="אמצעי תשלום" className={inp} defaultValue="">
                       <option value="">אמצעי תשלום</option>
                       <option value="bank">העברה בנקאית</option>
                       <option value="cash">מזומן</option>
                       <option value="check">שיק</option>
                       <option value="app">ביט / פייבוקס</option>
                     </select>
-                    <input type="text" name="notes" placeholder="הערה (אופציונלי)" className={inp} />
+                    <input type="text" aria-label="הערה" name="notes" placeholder="הערה (אופציונלי)" className={inp} />
                     <p className="text-xs text-gray-500">התשלום נרשם פעם אחת כהכנסה בקופה ומעדכן את חיוב הדירה. אין צורך להוסיף אותו שוב ידנית.</p>
                     <SubmitButton>רשום תשלום</SubmitButton>
                   </ActionForm>

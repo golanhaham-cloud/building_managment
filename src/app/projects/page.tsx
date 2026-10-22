@@ -112,7 +112,7 @@ export default async function ProjectsPage() {
             </div>
           );
         })}
-        {!projects?.length && <p className="text-gray-400 text-sm">אין תוכניות פעילות כרגע.</p>}
+        {!projects?.length && <p className="text-gray-500 text-sm">אין תוכניות פעילות כרגע.</p>}
       </div>
     </div>
   );

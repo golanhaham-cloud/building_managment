@@ -94,14 +94,14 @@ export default async function DashboardPage() {
           <div className="text-sm text-gray-500">🔧 תקלות פתוחות</div>
           <div className="big-number">{openReqCount}</div>
           {urgentReqCount > 0 && <div className="text-xs text-orange-700">מתוכן {urgentReqCount} בדחיפות גבוהה/דחופה</div>}
-          <div className="text-xs text-brand-600 mt-1">לרשימת התקלות ›</div>
+          <div className="text-xs text-brand-700 mt-1">לרשימת התקלות ›</div>
         </Link>
         {isAdmin && (
           <Link href="/manage/tasks" className="card block active:bg-gray-50">
             <div className="text-sm text-gray-500">✅ משימות ועד 🔒</div>
             <div className="big-number">{openTasks?.length ?? 0}</div>
             {overdueTaskCount > 0 && <div className="text-xs text-orange-700">{overdueTaskCount} עברו את תאריך היעד</div>}
-            <div className="text-xs text-brand-600 mt-1">למשימות הוועד ›</div>
+            <div className="text-xs text-brand-700 mt-1">למשימות הוועד ›</div>
           </Link>
         )}
       </div>
@@ -111,7 +111,7 @@ export default async function DashboardPage() {
           <div className="card col-span-2">
             <div className="text-sm text-gray-500">💰 יתרת קופה כוללת</div>
             <div className="big-number text-brand-700">{ils(bal.balance)}</div>
-            <div className="text-xs text-gray-400">יתרה מצטברת, לא נתון של {monthLabel}</div>
+            <div className="text-xs text-gray-500">יתרה מצטברת, לא נתון של {monthLabel}</div>
           </div>
           <div className="card">
             <div className="text-sm text-gray-500">📥 הכנסות {monthLabel}</div>
@@ -159,7 +159,7 @@ export default async function DashboardPage() {
         )}
 
         <details className="group mt-3">
-          <summary className="list-none cursor-pointer select-none rounded-xl border border-brand-600 text-brand-700 font-semibold text-sm py-2 text-center [&::-webkit-details-marker]:hidden">
+          <summary className="list-none cursor-pointer select-none rounded-xl border border-brand-600 text-brand-700 font-semibold text-sm min-h-[44px] flex items-center justify-center [&::-webkit-details-marker]:hidden">
             <span className="group-open:hidden">הצג פירוט לפי דירה ({totalApts}) ▾</span>
             <span className="hidden group-open:inline">הסתר פירוט לפי דירה ▴</span>
           </summary>
@@ -170,12 +170,12 @@ export default async function DashboardPage() {
               <div key={p.apartment_id} className="flex items-center justify-between gap-2 py-2 text-sm">
                 <span>
                   דירה {p.apartments.apartment_number}{" "}
-                  <span className="text-gray-400">(קומה {p.apartments.floor})</span>
+                  <span className="text-gray-500">(קומה {p.apartments.floor})</span>
                 </span>
                 <span className="flex items-center gap-2 text-end">
                   <span>
                     {st.label}
-                    <span className="block text-xs text-gray-400">{ils(p.amount_paid)} / {ils(p.amount_due)}</span>
+                    <span className="block text-xs text-gray-500">{ils(p.amount_paid)} / {ils(p.amount_due)}</span>
                   </span>
                   <span className={`inline-block w-2.5 h-2.5 rounded-full shrink-0 ${DOT[st.dot]}`} title={st.label} />
                 </span>

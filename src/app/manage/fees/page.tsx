@@ -39,7 +39,7 @@ export default async function FeesPage({ searchParams }: { searchParams: { year?
     <div className="p-4 space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-extrabold">תעריפים, חיובים וזיכויים</h1>
-        <Link href="/manage" className="text-sm text-brand-600 font-semibold">ניהול ←</Link>
+        <Link href="/manage" className="inline-flex items-center min-h-[44px] text-sm text-brand-700 font-semibold">ניהול ←</Link>
       </div>
 
       <div className="flex items-center justify-between card py-3">
@@ -93,14 +93,14 @@ export default async function FeesPage({ searchParams }: { searchParams: { year?
 
       <div className="card space-y-2">
         <div className="font-semibold text-sm">היסטוריית תעריפים (לא נמחקת ולא נערכת)</div>
-        {(tariffs ?? []).length === 0 && <p className="text-sm text-gray-400">עדיין לא הוגדרו תעריפים.</p>}
+        {(tariffs ?? []).length === 0 && <p className="text-sm text-gray-500">עדיין לא הוגדרו תעריפים.</p>}
         {(tariffs ?? []).map((t: any) => {
           const list = (tApts ?? []).filter((x: any) => x.tariff_id === t.id).map((x: any) => numById.get(x.apartment_id)).filter(Boolean);
           return (
             <div key={t.id} className="text-sm border-b border-gray-100 pb-2">
               <b>{ils(t.amount)}</b> · מ-{new Date(t.effective_from).toLocaleDateString("he-IL", { month: "long", year: "numeric" })}
               <div className="text-xs text-gray-500">{t.scope === "all" ? "כל הדירות" : `דירות: ${list.join(", ")}`} · סיבה: {t.reason}</div>
-              <div className="text-xs text-gray-400">נוצר {new Date(t.created_at).toLocaleDateString("he-IL")}</div>
+              <div className="text-xs text-gray-500">נוצר {new Date(t.created_at).toLocaleDateString("he-IL")}</div>
             </div>
           );
         })}
@@ -130,12 +130,12 @@ export default async function FeesPage({ searchParams }: { searchParams: { year?
         <div className="divide-y divide-gray-100">
           {(adjustments ?? []).map((a: any) => (
             <div key={a.id} className="py-2 text-sm">
-              <div className={`flex justify-between ${a.voided_at ? "line-through text-gray-400" : ""}`}>
+              <div className={`flex justify-between ${a.voided_at ? "line-through text-gray-500" : ""}`}>
                 <span>דירה {numById.get(a.apartment_id)} · {a.reason}</span>
                 <b>{a.amount < 0 ? "זיכוי " : "חיוב "}{ils(Math.abs(a.amount))}</b>
               </div>
               {a.voided_at ? (
-                <div className="text-xs text-status-unpaid">בוטל: {a.void_reason}</div>
+                <div className="text-xs text-red-700">בוטל: {a.void_reason}</div>
               ) : (
                 <ActionForm action={voidAdjustment} className="flex gap-2 mt-1">
                   <input type="hidden" name="id" value={a.id} />

@@ -24,3 +24,13 @@ body {
 .big-number {
   @apply text-2xl font-extrabold tabular-nums;
 }
+
+/* Visible keyboard focus for links, buttons, summaries and form controls */
+a:focus-visible, button:focus-visible, summary:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-visible {
+  outline: 3px solid #316d63;
+  outline-offset: 2px;
+}
+
+/* Touch-friendly targets (min 44px) for disclosure toggles and submit buttons */
+details > summary { padding-block: 0.65rem; cursor: pointer; }
+button[type="submit"] { min-height: 44px; }

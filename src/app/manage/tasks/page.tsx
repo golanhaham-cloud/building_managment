@@ -13,22 +13,22 @@ function Fields({ t, members }: { t?: any; members: string[] }) {
     <>
       {t && <input type="hidden" name="id" value={t.id} />}
       {t && <input type="hidden" name="row_version" value={t.row_version} />}
-      <div><label className={lbl}>כותרת</label><input name="title" defaultValue={t?.title ?? ""} className={inp} required /></div>
+      <div><label className={lbl}>כותרת</label><input name="title" aria-label="כותרת" defaultValue={t?.title ?? ""} className={inp} required /></div>
       <div className="grid grid-cols-2 gap-2">
         <div>
           <label className={lbl}>אחראי/ת</label>
-          <input name="assignee" list="task-members" defaultValue={t?.assignee ?? ""} className={inp} />
+          <input name="assignee" aria-label="אחראי/ת" list="task-members" defaultValue={t?.assignee ?? ""} className={inp} />
           <datalist id="task-members">{members.map((m) => <option key={m} value={m} />)}</datalist>
         </div>
-        <div><label className={lbl}>תאריך יעד</label><input type="date" name="due_date" defaultValue={t?.due_date ?? ""} className={inp} /></div>
+        <div><label className={lbl}>תאריך יעד</label><input type="date" aria-label="תאריך יעד" name="due_date" defaultValue={t?.due_date ?? ""} className={inp} /></div>
       </div>
       <div>
         <label className={lbl}>סטטוס</label>
-        <select name="status" defaultValue={t?.status ?? "open"} className={inp}>
+        <select name="status" aria-label="סטטוס" defaultValue={t?.status ?? "open"} className={inp}>
           {Object.entries(STATUS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
         </select>
       </div>
-      <div><label className={lbl}>הערות</label><textarea name="notes" defaultValue={t?.notes ?? ""} rows={2} className={inp} /></div>
+      <div><label className={lbl}>הערות</label><textarea name="notes" aria-label="הערות" defaultValue={t?.notes ?? ""} rows={2} className={inp} /></div>
     </>
   );
 }
@@ -52,7 +52,7 @@ export default async function TasksPage() {
 
   return (
     <div className="p-4 space-y-4">
-      <Link href="/manage" className="text-sm text-brand-600">→ ניהול הבניין</Link>
+      <Link href="/manage" className="text-sm text-brand-700 inline-flex items-center min-h-[44px]">→ ניהול הבניין</Link>
       <h1 className="text-xl font-extrabold">משימות ועד 🔒</h1>
       <p className="text-xs text-gray-500">אזור פרטי: גלוי לחברי ועד בלבד, והגישה נאכפת במסד הנתונים.</p>
 
@@ -75,7 +75,7 @@ export default async function TasksPage() {
               </div>
               <div className="text-xs text-gray-500 mt-1">
                 {t.assignee ? `אחראי/ת: ${t.assignee}` : "ללא אחראי"}
-                {t.due_date && <span className={overdue ? "text-orange-600 font-semibold" : ""}> · יעד {new Date(t.due_date).toLocaleDateString("he-IL")}{overdue ? " (עבר)" : ""}</span>}
+                {t.due_date && <span className={overdue ? "text-orange-700 font-semibold" : ""}> · יעד {new Date(t.due_date).toLocaleDateString("he-IL")}{overdue ? " (עבר)" : ""}</span>}
               </div>
               {t.notes && <p className="text-sm text-gray-600 mt-1 whitespace-pre-wrap">{t.notes}</p>}
               <details className="mt-2">
@@ -88,7 +88,7 @@ export default async function TasksPage() {
             </div>
           );
         })}
-        {!sorted.length && <p className="text-gray-400 text-sm">אין משימות עדיין.</p>}
+        {!sorted.length && <p className="text-gray-500 text-sm">אין משימות עדיין.</p>}
       </div>
     </div>
   );

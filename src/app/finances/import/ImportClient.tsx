@@ -225,7 +225,7 @@ export default function ImportClient({ apartments }: { apartments: Apt[] }) {
           הורד מאתר הבנק את תנועות החשבון כקובץ Excel או CSV והעלה אותו כאן. המערכת לא מתחברת לבנק, והקובץ נקרא בדפדפן שלך בלבד.
         </p>
         <input type="file" accept=".csv,.xls,.xlsx" onChange={onFile} className="text-sm" />
-        {fileName && <div className="text-xs text-gray-400">{fileName}</div>}
+        {fileName && <div className="text-xs text-gray-500">{fileName}</div>}
       </div>
 
       {grid && !rows && (
@@ -278,9 +278,9 @@ export default function ImportClient({ apartments }: { apartments: Apt[] }) {
                   <input type="checkbox" checked={r.include} onChange={(e) => update(i, { include: e.target.checked })} className="mt-1" />
                   <div className="flex-1">
                     <div className="text-sm font-semibold">{r.description || "(ללא תיאור)"}</div>
-                    <div className="text-xs text-gray-400">{r.date}</div>
+                    <div className="text-xs text-gray-500">{r.date}</div>
                   </div>
-                  <div className={`font-bold tabular-nums text-sm ${r.type === "income" ? "text-status-paid" : "text-status-unpaid"}`}>
+                  <div className={`font-bold tabular-nums text-sm ${r.type === "income" ? "text-green-700" : "text-red-700"}`}>
                     {r.type === "income" ? "+" : "-"}
                     {r.amount.toLocaleString("he-IL")}
                   </div>

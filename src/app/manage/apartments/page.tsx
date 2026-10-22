@@ -23,7 +23,7 @@ export default async function ManageApartments() {
     <div className="p-4 space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-extrabold">דירות ודיירים</h1>
-        <Link href="/manage" className="text-sm text-brand-600 font-semibold">ניהול ←</Link>
+        <Link href="/manage" className="inline-flex items-center min-h-[44px] text-sm text-brand-700 font-semibold">ניהול ←</Link>
       </div>
 
       <details className="card">
@@ -51,7 +51,7 @@ export default async function ManageApartments() {
           return (
             <Link key={a.id} href={`/manage/apartments/${a.id}`} className="block py-3">
               <div className="flex items-center justify-between">
-                <span className="font-semibold">דירה {a.apartment_number} <span className="text-xs text-gray-400">(קומה {a.floor})</span></span>
+                <span className="font-semibold">דירה {a.apartment_number} <span className="text-xs text-gray-500">(קומה {a.floor})</span></span>
                 <span className="text-xs text-gray-500">{OCCUPANCY_LABELS[a.occupancy_status]}</span>
               </div>
               <div className="text-xs text-gray-500">

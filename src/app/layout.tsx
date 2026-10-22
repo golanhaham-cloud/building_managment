@@ -18,7 +18,7 @@ export default async function RootLayout({
   return (
     <html lang="he" dir="rtl">
       <body>
-        <div className="mx-auto max-w-3xl min-h-screen pb-20">{children}</div>
+        <main className="mx-auto max-w-3xl min-h-screen pb-24">{children}</main>
         {user && <BottomNav role={user.role} />}
       </body>
     </html>

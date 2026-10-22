@@ -143,7 +143,7 @@ function LoginForm() {
               />
             </>
           )}
-          {error && <p className="text-sm text-status-unpaid">{error}</p>}
+          {error && <p className="text-sm text-red-700">{error}</p>}
           <button type="submit" disabled={loading} className="btn-primary w-full">
             {loading ? "רגע..." : mode === "login" ? "כניסה" : mode === "signup" ? "הרשמה" : "שלח/י לי קישור"}
           </button>

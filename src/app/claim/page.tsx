@@ -47,7 +47,7 @@ export default function ClaimPage() {
           className="w-full rounded-xl border border-gray-300 px-3 py-2 text-right"
           dir="ltr"
         />
-        {error && <p className="text-sm text-status-unpaid">{error}</p>}
+        {error && <p className="text-sm text-red-700">{error}</p>}
         <button type="submit" disabled={loading} className="btn-primary w-full">
           {loading ? "רגע..." : "המשך"}
         </button>

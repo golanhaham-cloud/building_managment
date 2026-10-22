@@ -31,7 +31,7 @@ export default async function ImportPage() {
     <div className="p-4 space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-extrabold">ייבוא תנועות מהבנק</h1>
-        <Link href="/finances" className="text-sm text-brand-600 font-semibold">
+        <Link href="/finances" className="inline-flex items-center min-h-[44px] text-sm text-brand-700 font-semibold">
           חזרה ←
         </Link>
       </div>

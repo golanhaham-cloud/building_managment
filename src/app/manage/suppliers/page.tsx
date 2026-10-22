@@ -29,7 +29,7 @@ export default async function SuppliersPage() {
     <div className="p-4 space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-extrabold">ספקים</h1>
-        <Link href="/manage" className="text-sm text-brand-600 font-semibold">ניהול ←</Link>
+        <Link href="/manage" className="inline-flex items-center min-h-[44px] text-sm text-brand-700 font-semibold">ניהול ←</Link>
       </div>
       <details className="card">
         <summary className="font-semibold cursor-pointer text-sm">+ ספק חדש</summary>
@@ -50,7 +50,7 @@ export default async function SuppliersPage() {
             </ActionForm>
           </details>
         ))}
-        {!(data ?? []).length && <p className="text-sm text-gray-400 py-2">אין עדיין ספקים.</p>}
+        {!(data ?? []).length && <p className="text-sm text-gray-500 py-2">אין עדיין ספקים.</p>}
       </div>
     </div>
   );

@@ -17,7 +17,7 @@ export default async function AuditPage({ searchParams }: { searchParams: { enti
     <div className="p-4 space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-extrabold">יומן שינויים</h1>
-        <Link href="/manage" className="text-sm text-brand-600 font-semibold">ניהול ←</Link>
+        <Link href="/manage" className="inline-flex items-center min-h-[44px] text-sm text-brand-700 font-semibold">ניהול ←</Link>
       </div>
       <form className="card flex gap-2" method="get">
         <select name="entity" defaultValue={searchParams.entity ?? ""} className={inp}>

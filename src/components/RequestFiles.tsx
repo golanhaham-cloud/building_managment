@@ -47,13 +47,13 @@ export function AttachFilesForm({ buildingId, requestId }: { buildingId: string;
 
   return (
     <div className="space-y-2">
-      <input ref={ref} type="file" multiple accept={ACCEPT(REQUEST_FILE_TYPES)} className="block w-full text-sm" disabled={busy} />
+      <input ref={ref} aria-label="בחירת קבצים לצירוף" type="file" multiple accept={ACCEPT(REQUEST_FILE_TYPES)} className="block w-full text-sm" disabled={busy} />
       <p className="text-xs text-gray-500">{REQUEST_FILE_HINT}</p>
-      <button type="button" onClick={go} disabled={busy} className="btn-primary w-full text-sm py-1.5 disabled:opacity-60">
+      <button type="button" onClick={go} disabled={busy} className="btn-primary w-full text-sm py-2.5 min-h-[44px] disabled:opacity-60">
         {busy ? "מעלה..." : "צרף קבצים"}
       </button>
       {log.map((l, i) => (
-        <p key={i} className={`text-sm ${l.startsWith("✔") ? "text-status-paid" : "text-status-unpaid"}`}>{l}</p>
+        <p key={i} className={`text-sm ${l.startsWith("✔") ? "text-green-700" : "text-red-700"}`}>{l}</p>
       ))}
     </div>
   );
@@ -91,25 +91,25 @@ export function NewRequestForm({ buildingId }: { buildingId: string }) {
 
   return (
     <form ref={formRef} onSubmit={submit} className="space-y-2 mt-3">
-      <input type="text" name="title" placeholder="כותרת (למשל: נורה שרופה בקומה 2)" className={inp} required />
-      <input type="text" name="category" placeholder="קטגוריה (תחזוקה, ניקיון וכו')" className={inp} />
+      <input type="text" name="title" aria-label="כותרת" placeholder="כותרת (למשל: נורה שרופה בקומה 2)" className={inp} required />
+      <input type="text" name="category" aria-label="קטגוריה" placeholder="קטגוריה (תחזוקה, ניקיון וכו')" className={inp} />
       <div>
         <label className={lbl}>דחיפות</label>
-        <select name="urgency" className={inp} required defaultValue="">
+        <select name="urgency" aria-label="דחיפות" className={inp} required defaultValue="">
           <option value="" disabled>בחר/י דחיפות</option>
           {URGENCY_OPTIONS.map((u) => <option key={u} value={u}>{URGENCY_LABELS[u]}</option>)}
         </select>
       </div>
-      <textarea name="description" placeholder="תיאור מפורט" className={inp} rows={2} />
+      <textarea name="description" aria-label="תיאור" placeholder="תיאור מפורט" className={inp} rows={2} />
       <div>
         <label className={lbl}>קבצים (אופציונלי)</label>
-        <input ref={fileRef} type="file" multiple accept={ACCEPT(REQUEST_FILE_TYPES)} className="block w-full text-sm" />
+        <input ref={fileRef} aria-label="בחירת קבצים לצירוף" type="file" multiple accept={ACCEPT(REQUEST_FILE_TYPES)} className="block w-full text-sm" />
         <p className="text-xs text-gray-500 mt-1">{REQUEST_FILE_HINT}</p>
       </div>
-      <button type="submit" disabled={busy} className="btn-primary w-full text-sm py-1.5 disabled:opacity-60">
+      <button type="submit" disabled={busy} className="btn-primary w-full text-sm py-2.5 min-h-[44px] disabled:opacity-60">
         {busy ? "שולח..." : "פתח/י בקשה"}
       </button>
-      {msgs.map((m, i) => <p key={i} className={`text-sm ${m.ok ? "text-status-paid" : "text-status-unpaid"}`}>{m.text}</p>)}
+      {msgs.map((m, i) => <p key={i} className={`text-sm ${m.ok ? "text-green-700" : "text-red-700"}`}>{m.text}</p>)}
     </form>
   );
 }

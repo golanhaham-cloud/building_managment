@@ -69,7 +69,7 @@ export default async function ApartmentsPage() {
                       {apt.occupants_count ? ` · ${apt.occupants_count} נפשות` : ""}
                     </div>
                     {rented && owners.filter((o) => !o.lives_here).length > 0 && (
-                      <div className="text-xs text-gray-400">
+                      <div className="text-xs text-gray-500">
                         בעל/ת הדירה: {owners.filter((o) => !o.lives_here).map((o) => o.full_name).join(", ")}
                       </div>
                     )}

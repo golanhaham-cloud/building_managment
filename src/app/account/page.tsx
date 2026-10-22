@@ -45,7 +45,7 @@ export default function AccountPage() {
           {loading ? "רגע..." : "שמירה"}
         </button>
       </form>
-      <button onClick={logout} className="card w-full text-sm text-status-unpaid font-semibold">
+      <button onClick={logout} className="card w-full text-sm text-red-700 font-semibold">
         יציאה מהחשבון
       </button>
     </div>

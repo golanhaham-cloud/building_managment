@@ -18,7 +18,7 @@ export default async function DocumentsPage() {
 
   return (
     <div className="p-4 space-y-4">
-      <Link href="/manage" className="text-sm text-brand-600">→ ניהול הבניין</Link>
+      <Link href="/manage" className="text-sm text-brand-700 inline-flex items-center min-h-[44px]">→ ניהול הבניין</Link>
       <h1 className="text-xl font-extrabold">ארכיון מסמכי ועד 🔒</h1>
       <p className="text-xs text-gray-500">פרטי: גלוי לחברי ועד בלבד. ההרשאה נאכפת גם על הקבצים עצמם באחסון.</p>
 
@@ -33,19 +33,19 @@ export default async function DocumentsPage() {
             <span className="text-xl">{fileIcon(d.mime_type)}</span>
             <span className="flex-1 min-w-0">
               <span className="block font-semibold truncate">{d.title}</span>
-              <span className="block text-xs text-gray-400 truncate">
+              <span className="block text-xs text-gray-500 truncate">
                 {new Date(d.doc_date).toLocaleDateString("he-IL")} · {d.file_name} · {fmtSize(d.size_bytes)}
               </span>
             </span>
-            <a href={`/files/doc/${d.id}`} target="_blank" rel="noopener" className="text-brand-600 text-xs">פתיחה</a>
-            <a href={`/files/doc/${d.id}?dl=1`} className="text-brand-600 text-xs">הורדה</a>
+            <a href={`/files/doc/${d.id}`} target="_blank" rel="noopener" className="text-brand-700 text-sm inline-flex items-center min-h-[44px] px-2">פתיחה</a>
+            <a href={`/files/doc/${d.id}?dl=1`} className="text-brand-700 text-sm inline-flex items-center min-h-[44px] px-2">הורדה</a>
             <ActionForm action={removeCommitteeDocument} className="inline">
               <input type="hidden" name="id" value={d.id} />
-              <SubmitButton className="text-xs text-status-unpaid" confirmText="להסיר את המסמך מהארכיון? הפעולה נרשמת ביומן.">הסר</SubmitButton>
+              <SubmitButton className="text-xs text-red-700" confirmText="להסיר את המסמך מהארכיון? הפעולה נרשמת ביומן.">הסר</SubmitButton>
             </ActionForm>
           </div>
         ))}
-        {!docs?.length && <p className="text-gray-400 text-sm py-2">אין מסמכים בארכיון.</p>}
+        {!docs?.length && <p className="text-gray-500 text-sm py-2">אין מסמכים בארכיון.</p>}
       </div>
     </div>
   );

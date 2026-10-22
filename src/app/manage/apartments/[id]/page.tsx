@@ -64,7 +64,7 @@ export default async function ApartmentDetail({ params }: { params: { id: string
     <div className="p-4 space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-extrabold">דירה {apt.apartment_number}</h1>
-        <Link href="/manage/apartments" className="text-sm text-brand-600 font-semibold">הרשימה ←</Link>
+        <Link href="/manage/apartments" className="inline-flex items-center min-h-[44px] text-sm text-brand-700 font-semibold">הרשימה ←</Link>
       </div>
 
       <ActionForm action={saveApartment} keepOnSuccess className="card space-y-2">
@@ -89,7 +89,7 @@ export default async function ApartmentDetail({ params }: { params: { id: string
 
       <div className="card space-y-3">
         <div className="font-semibold text-sm">אנשים פעילים בדירה</div>
-        {active.length === 0 && <p className="text-sm text-gray-400">אין אנשים פעילים.</p>}
+        {active.length === 0 && <p className="text-sm text-gray-500">אין אנשים פעילים.</p>}
         {active.map((p: any) => (
           <details key={p.id} className="border border-gray-100 rounded-lg p-2">
             <summary className="cursor-pointer text-sm">
@@ -104,7 +104,7 @@ export default async function ApartmentDetail({ params }: { params: { id: string
                 <SubmitButton>שמור שינויים</SubmitButton>
               </ActionForm>
               <ActionForm action={deactivatePerson} className="space-y-2 border border-red-100 rounded-lg p-2">
-                <div className="text-xs font-semibold text-status-unpaid">הוצאה מהדירה (סימון כלא פעיל)</div>
+                <div className="text-xs font-semibold text-red-700">הוצאה מהדירה (סימון כלא פעיל)</div>
                 <p className="text-xs text-gray-500">ההיסטוריה נשמרת. חובות או חיובי הדירה לא עוברים לאף אדם חדש. אם לאדם יש חשבון משתמש רגיל, הגישה שלו תוסר.</p>
                 <input type="hidden" name="id" value={p.id} />
                 <input type="hidden" name="apartment_id" value={apt.id} />
@@ -132,7 +132,7 @@ export default async function ApartmentDetail({ params }: { params: { id: string
           {past.map((p: any) => (
             <div key={p.id} className="text-sm border-b border-gray-100 pb-2">
               <b>{p.full_name}</b> · {p.ownership === "owner" ? "בעלים" : "שוכר/ת"}
-              <div className="text-xs text-gray-400">
+              <div className="text-xs text-gray-500">
                 {p.move_in_date ? `כניסה ${new Date(p.move_in_date).toLocaleDateString("he-IL")}` : "תאריך כניסה לא ידוע"}
                 {p.move_out_date ? ` · עזיבה ${new Date(p.move_out_date).toLocaleDateString("he-IL")}` : ""}
               </div>
@@ -149,7 +149,7 @@ export default async function ApartmentDetail({ params }: { params: { id: string
 
       <div className="card space-y-2">
         <div className="font-semibold text-sm">חיובי ועד אחרונים (לדירה, לא לאדם)</div>
-        {(pays ?? []).length === 0 && <p className="text-sm text-gray-400">אין חיובים.</p>}
+        {(pays ?? []).length === 0 && <p className="text-sm text-gray-500">אין חיובים.</p>}
         {(pays ?? []).map((p: any) => (
           <div key={`${p.year}-${p.month}`} className="flex justify-between text-sm">
             <span>{p.month}/{p.year}</span>
@@ -163,7 +163,7 @@ export default async function ApartmentDetail({ params }: { params: { id: string
         {(notes ?? []).map((n: any) => (
           <div key={n.id} className="text-sm border-b border-gray-100 pb-1">
             {n.note}
-            <div className="text-xs text-gray-400">
+            <div className="text-xs text-gray-500">
               {n.entity_type === "resident" ? people.find((p: any) => p.id === n.entity_id)?.full_name ?? "" : "הדירה"} · {new Date(n.created_at).toLocaleDateString("he-IL")}
             </div>
           </div>

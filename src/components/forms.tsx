@@ -23,7 +23,7 @@ export function SubmitButton({
       onClick={(e) => {
         if (confirmText && !window.confirm(confirmText)) e.preventDefault();
       }}
-      className={className ?? "btn-primary w-full text-sm py-1.5 disabled:opacity-60"}
+      className={className ?? "btn-primary w-full text-sm py-2.5 min-h-[44px] disabled:opacity-60"}
     >
       {pending ? "שומר..." : children}
     </button>
@@ -69,7 +69,7 @@ export function ActionForm({
       <input type="hidden" name="idempotency_key" value={key} />
       {children}
       {state && (
-        <p className={`text-sm ${state.ok ? "text-status-paid" : "text-status-unpaid"}`} role="status">
+        <p className={`text-sm ${state.ok ? "text-green-700" : "text-red-700"}`} role="status">
           {state.message}
         </p>
       )}

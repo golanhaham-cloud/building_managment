@@ -43,11 +43,11 @@ export default async function RequestsPage({ searchParams }: { searchParams: { s
       <h1 className="text-xl font-extrabold">בקשות ותקלות</h1>
 
       <details className="card">
-        <summary className="font-semibold cursor-pointer">+ פתיחת בקשה חדשה</summary>
+        <summary className="font-semibold cursor-pointer min-h-[44px] flex items-center">+ פתיחת בקשה חדשה</summary>
         <NewRequestForm buildingId={appUser?.building_id ?? ""} />
       </details>
 
-      <form method="get" className="card space-y-2">
+      <form method="get" role="search" aria-label="סינון תקלות" className="card space-y-2">
         <div className="grid grid-cols-2 gap-2">
           <select name="status" defaultValue={fStatus} className={inp} aria-label="סינון לפי סטטוס">
             <option value="">כל הסטטוסים</option>
@@ -60,8 +60,8 @@ export default async function RequestsPage({ searchParams }: { searchParams: { s
           </select>
         </div>
         <div className="flex items-center gap-2">
-          <button type="submit" className="btn-primary text-sm py-1.5 px-4">סנן</button>
-          {filtered && <Link href="/requests" className="text-sm text-brand-600 font-semibold">נקה סינון</Link>}
+          <button type="submit" className="btn-primary text-sm py-2.5 px-5 min-h-[44px]">סנן</button>
+          {filtered && <Link href="/requests" className="text-sm text-brand-700 font-semibold min-h-[44px] inline-flex items-center">נקה סינון</Link>}
           <span className="text-xs text-gray-500 me-auto">מוצגות {shown.length} מתוך {all.length}</span>
         </div>
       </form>
@@ -70,47 +70,47 @@ export default async function RequestsPage({ searchParams }: { searchParams: { s
         {shown.map((r: any) => (
           <div key={r.id} className="card">
             <div className="flex items-center justify-between">
-              <Link href={`/requests/${r.id}`} className="font-semibold">{r.title}</Link>
+              <Link href={`/requests/${r.id}`} className="font-semibold py-2 inline-block">{r.title}</Link>
               <span className="text-sm whitespace-nowrap">{STATUS_LABELS[r.status as RequestStatus]}</span>
             </div>
             <div className="flex flex-wrap items-center gap-2 mt-1">
               {r.urgency ? (
                 <span className={`text-xs rounded-full px-2 py-0.5 ${URGENCY_BADGE[r.urgency]}`}>דחיפות: {URGENCY_LABELS[r.urgency]}</span>
               ) : (
-                <span className="text-xs rounded-full px-2 py-0.5 bg-gray-100 text-gray-500">דחיפות: לא צוינה</span>
+                <span className="text-xs rounded-full px-2 py-0.5 bg-gray-100 text-gray-700">דחיפות: לא צוינה</span>
               )}
               {(() => {
                 const n = (r.request_attachments ?? []).filter((x: any) => !x.removed_at).length;
                 return n ? <span className="text-xs text-gray-500">📎 {n}</span> : null;
               })()}
-              <Link href={`/requests/${r.id}`} className="text-xs text-brand-600 me-auto">לפרטים המלאים ולקבצים ›</Link>
+              <Link href={`/requests/${r.id}`} className="text-sm text-brand-700 me-auto min-h-[44px] inline-flex items-center">לפרטים המלאים ולקבצים ›</Link>
             </div>
             {r.description && <p className="text-sm text-gray-500 mt-1 line-clamp-2">{r.description}</p>}
-            <div className="text-xs text-gray-400 mt-1">
+            <div className="text-xs text-gray-500 mt-1">
               {r.apartments?.apartment_number ? `דירה ${r.apartments.apartment_number} · ` : ""}
               {new Date(r.created_at).toLocaleDateString("he-IL")}
             </div>
 
             {isAdmin && (
               <details className="mt-2">
-                <summary className="text-xs text-brand-600 cursor-pointer">טיפול ועריכה</summary>
+                <summary className="text-sm text-brand-700 cursor-pointer min-h-[44px] flex items-center">טיפול ועריכה</summary>
                 <ActionForm action={saveRequest} keepOnSuccess className="space-y-2 mt-2">
                   <input type="hidden" name="id" value={r.id} />
                   <input type="hidden" name="row_version" value={r.row_version} />
                   <input type="hidden" name="prev_status" value={r.status} />
-                  <input name="title" defaultValue={r.title} className={inp} required />
-                  <input name="category" defaultValue={r.category ?? ""} placeholder="קטגוריה" className={inp} />
-                  <textarea name="description" defaultValue={r.description ?? ""} rows={2} className={inp} />
-                  <select name="urgency" defaultValue={r.urgency ?? ""} className={inp}>
+                  <input name="title" aria-label="כותרת" defaultValue={r.title} className={inp} required />
+                  <input name="category" aria-label="קטגוריה" defaultValue={r.category ?? ""} placeholder="קטגוריה" className={inp} />
+                  <textarea name="description" aria-label="תיאור" defaultValue={r.description ?? ""} rows={2} className={inp} />
+                  <select name="urgency" aria-label="דחיפות" defaultValue={r.urgency ?? ""} className={inp}>
                     <option value="">דחיפות: לא צוינה</option>
                     {URGENCY_OPTIONS.map((u) => <option key={u} value={u}>דחיפות: {URGENCY_LABELS[u]}</option>)}
                   </select>
-                  <select name="status" defaultValue={r.status} className={inp}>
+                  <select name="status" aria-label="סטטוס" defaultValue={r.status} className={inp}>
                     {STATUS_OPTIONS.map((st) => (
                       <option key={st} value={st}>{STATUS_LABELS[st]}</option>
                     ))}
                   </select>
-                  <input name="comment" placeholder="הערת טיפול (נשמרת בהיסטוריית הפנייה)" className={inp} />
+                  <input name="comment" aria-label="הערת טיפול" placeholder="הערת טיפול (נשמרת בהיסטוריית הפנייה)" className={inp} />
                   <SubmitButton>שמור</SubmitButton>
                 </ActionForm>
               </details>
@@ -118,7 +118,7 @@ export default async function RequestsPage({ searchParams }: { searchParams: { s
           </div>
         ))}
         {!shown.length && (
-          <p className="text-gray-400 text-sm">
+          <p className="text-gray-500 text-sm">
             {filtered ? "אין תקלות התואמות את הסינון." : "אין בקשות פתוחות כרגע."}
           </p>
         )}

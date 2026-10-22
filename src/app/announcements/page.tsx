@@ -56,7 +56,7 @@ export default async function AnnouncementsPage() {
               <span className="font-semibold">{a.title}</span>
             </div>
             <p className="text-sm text-gray-600 mt-1">{a.body}</p>
-            <div className="text-xs text-gray-400 mt-1">
+            <div className="text-xs text-gray-500 mt-1">
               {new Date(a.created_at).toLocaleDateString("he-IL")}
             </div>
             {isAdmin && (
@@ -74,7 +74,7 @@ export default async function AnnouncementsPage() {
             )}
           </div>
         ))}
-        {!announcements?.length && <p className="text-gray-400 text-sm">אין הודעות חדשות.</p>}
+        {!announcements?.length && <p className="text-gray-500 text-sm">אין הודעות חדשות.</p>}
       </div>
     </div>
   );

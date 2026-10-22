@@ -28,7 +28,7 @@ export default function BottomNav({ role }: { role: UserRole }) {
 
   return (
     <nav className="fixed bottom-0 inset-x-0 bg-white border-t border-gray-200 z-20">
-      <div className={`mx-auto max-w-3xl grid ${role === "admin" ? "grid-cols-5" : "grid-cols-7"} text-[11px]`}>
+      <div className={`mx-auto max-w-3xl grid ${role === "admin" ? "grid-cols-5" : "grid-cols-7"} text-xs`}>
         {list.map((item) => {
           const active = pathname.startsWith(item.href);
           return (

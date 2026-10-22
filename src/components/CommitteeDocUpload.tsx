@@ -44,15 +44,15 @@ export default function CommitteeDocUpload({ buildingId }: { buildingId: string 
 
   return (
     <form ref={formRef} onSubmit={submit} className="space-y-2 mt-3">
-      <div><label className={lbl}>כותרת</label><input name="title" className={inp} required /></div>
-      <div><label className={lbl}>תאריך המסמך</label><input type="date" name="date" defaultValue={new Date().toISOString().slice(0, 10)} className={inp} required /></div>
+      <div><label className={lbl}>כותרת</label><input name="title" aria-label="כותרת" className={inp} required /></div>
+      <div><label className={lbl}>תאריך המסמך</label><input type="date" aria-label="תאריך המסמך" name="date" defaultValue={new Date().toISOString().slice(0, 10)} className={inp} required /></div>
       <div>
         <label className={lbl}>קובץ</label>
-        <input ref={fileRef} type="file" accept={ACCEPT(COMMITTEE_DOC_TYPES)} className="block w-full text-sm" required />
+        <input ref={fileRef} aria-label="קובץ" type="file" accept={ACCEPT(COMMITTEE_DOC_TYPES)} className="block w-full text-sm" required />
         <p className="text-xs text-gray-500 mt-1">{COMMITTEE_DOC_HINT}</p>
       </div>
-      <button type="submit" disabled={busy} className="btn-primary w-full text-sm py-1.5 disabled:opacity-60">{busy ? "מעלה..." : "העלה לארכיון"}</button>
-      {msg && <p className={`text-sm ${msg.ok ? "text-status-paid" : "text-status-unpaid"}`}>{msg.text}</p>}
+      <button type="submit" disabled={busy} className="btn-primary w-full text-sm py-2.5 min-h-[44px] disabled:opacity-60">{busy ? "מעלה..." : "העלה לארכיון"}</button>
+      {msg && <p className={`text-sm ${msg.ok ? "text-green-700" : "text-red-700"}`}>{msg.text}</p>}
     </form>
   );
 }

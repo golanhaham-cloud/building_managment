@@ -54,7 +54,7 @@ export default async function FinancesPage() {
     <div className="p-4 space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-extrabold">כספי הבניין</h1>
-        <Link href="/payments" className="text-sm text-brand-600 font-semibold">
+        <Link href="/payments" className="inline-flex items-center min-h-[44px] text-sm text-brand-700 font-semibold">
           תשלומי ועד ←
         </Link>
       </div>
@@ -102,7 +102,7 @@ export default async function FinancesPage() {
               <div className="flex items-center justify-between">
                 <div className={voided ? "opacity-60" : ""}>
                   <div className={`font-semibold ${voided ? "line-through" : ""}`}>{t.description ?? t.categories?.name}</div>
-                  <div className="text-xs text-gray-400">
+                  <div className="text-xs text-gray-500">
                     {new Date(t.date).toLocaleDateString("he-IL")}
                     {t.categories?.name ? ` · ${t.categories.name}` : ""}
                     {t.suppliers?.name ? ` · ${t.suppliers.name}` : ""}
@@ -110,9 +110,9 @@ export default async function FinancesPage() {
                     {t.fee_month ? ` · ועד ${t.fee_month}/${t.fee_year}` : ""}
                   </div>
                   {t.notes && <div className="text-xs text-gray-500">{t.notes}</div>}
-                  {voided && <div className="text-xs text-status-unpaid">בוטל: {t.void_reason}</div>}
+                  {voided && <div className="text-xs text-red-700">בוטל: {t.void_reason}</div>}
                 </div>
-                <div className={`font-bold tabular-nums ${voided ? "text-gray-400 line-through" : t.type === "income" ? "text-status-paid" : "text-status-unpaid"}`}>
+                <div className={`font-bold tabular-nums ${voided ? "text-gray-500 line-through" : t.type === "income" ? "text-green-700" : "text-red-700"}`}>
                   {t.type === "income" ? "+" : "-"}
                   {ils(t.amount)}
                 </div>
@@ -147,7 +147,7 @@ export default async function FinancesPage() {
                     </ActionForm>
 
                     <ActionForm action={voidTransaction} className="space-y-2 border border-red-100 rounded-lg p-2">
-                      <div className="text-xs font-semibold text-status-unpaid">ביטול תנועה (לא נמחקת, רק לא נספרת ביתרה)</div>
+                      <div className="text-xs font-semibold text-red-700">ביטול תנועה (לא נמחקת, רק לא נספרת ביתרה)</div>
                       <input type="hidden" name="id" value={t.id} />
                       <input type="hidden" name="row_version" value={t.row_version} />
                       <input type="text" name="reason" placeholder="סיבת הביטול (חובה)" className={inp} required minLength={3} />
@@ -170,7 +170,7 @@ export default async function FinancesPage() {
             </div>
           );
         })}
-        {!tx?.length && <p className="text-gray-400 text-sm py-4">אין עדיין תנועות רשומות.</p>}
+        {!tx?.length && <p className="text-gray-500 text-sm py-4">אין עדיין תנועות רשומות.</p>}
       </div>
     </div>
   );

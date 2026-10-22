@@ -17,7 +17,7 @@ export default async function UsersPage() {
     <div className="p-4 space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-extrabold">הרשאות משתמשים</h1>
-        <Link href="/manage" className="text-sm text-brand-600 font-semibold">ניהול ←</Link>
+        <Link href="/manage" className="inline-flex items-center min-h-[44px] text-sm text-brand-700 font-semibold">ניהול ←</Link>
       </div>
       <div className="card text-xs text-gray-600 space-y-1">
         <p>חבר ועד (admin) יכול לערוך נתוני בניין. דייר רגיל רק צופה ופותח פניות.</p>
