@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentAppUser } from "@/lib/current-user";
-import { recordFeePayment } from "@/lib/manage-actions";
+import { recordFeePayment, setMonthReview } from "@/lib/manage-actions";
+import { latestReview, paymentsSummary } from "@/lib/completeness";
 import { ActionForm, SubmitButton } from "@/components/forms";
 import { inp, lbl, ils, monthName } from "@/components/ui";
 import Link from "next/link";
@@ -22,6 +23,13 @@ export default async function PaymentsPage({ searchParams }: { searchParams: { y
   const sorted = [...(apartments ?? [])].sort((a, b) => Number(a.apartment_number) - Number(b.apartment_number));
 
   const { data: overview } = await supabase.rpc("month_fee_overview", { p_year: year, p_month: month });
+  const { data: reviewRows } = await supabase
+    .from("fee_month_reviews")
+    .select("year, month, is_complete, created_at, created_by")
+    .eq("year", year)
+    .eq("month", month);
+  const review = latestReview(reviewRows as any, year, month);
+  const reviewed = review?.is_complete === true;
   const byApt = new Map((overview ?? []).map((o: any) => [o.apartment_id, o]));
 
   let totalDue = 0;
@@ -39,6 +47,7 @@ export default async function PaymentsPage({ searchParams }: { searchParams: { y
     if (o.status === "paid") paidCount++;
   }
 
+  const sum = paymentsSummary({ charges: totalDue, recorded: totalPaid, reviewed });
   const prev = month === 1 ? { year: year - 1, month: 12 } : { year, month: month - 1 };
   const next = month === 12 ? { year: year + 1, month: 1 } : { year, month: month + 1 };
 
@@ -59,14 +68,34 @@ export default async function PaymentsPage({ searchParams }: { searchParams: { y
         <Link href={`/payments?year=${next.year}&month=${next.month}`} className="text-brand-600">חודש הבא ←</Link>
       </div>
 
-      <div className="card">
-        <div>סה״כ חיובים: <b>{ils(totalDue)}</b></div>
-        <div>התקבל: <b>{ils(totalPaid)}</b></div>
-        <div>נותר לגבייה: <b>{ils(Math.max(totalDue - totalPaid, 0))}</b></div>
+      <div className="card space-y-1">
+        <div>חיובים: <b>{ils(sum.charges)}</b></div>
+        <div>תשלומים שנרשמו: <b>{ils(sum.recorded)}</b></div>
+        <div>יתרה לפי הרישום באתר: <b>{ils(sum.balance)}</b></div>
         <div className="text-sm text-gray-500 mt-1">
-          {paidCount} דירות שילמו במלואן
+          {paidCount} דירות נרשם להן תשלום מלא
           {undefinedCount > 0 && ` · ל-${undefinedCount} דירות התעריף לחודש זה לא הוגדר`}
         </div>
+        {sum.partial ? (
+          <div className="mt-2 rounded-lg bg-amber-50 text-amber-800 text-sm p-2">⚠️ {sum.warning}</div>
+        ) : (
+          <div className="mt-2 rounded-lg bg-green-50 text-green-800 text-sm p-2">
+            ✔ רישום החודש נבדק והושלם על ידי הוועד ({new Date(review!.created_at).toLocaleDateString("he-IL")})
+          </div>
+        )}
+        {isAdmin && (
+          <ActionForm action={setMonthReview} className="mt-2 space-y-2">
+            <input type="hidden" name="year" value={year} />
+            <input type="hidden" name="month" value={month} />
+            <input type="hidden" name="complete" value={reviewed ? "false" : "true"} />
+            <SubmitButton
+              className="w-full text-sm py-1.5 rounded-xl border border-brand-600 text-brand-700 font-semibold disabled:opacity-60"
+              confirmText={reviewed ? "לבטל את סימון השלמות של החודש?" : `לאשר שהרישום של ${monthName(month)} ${year} נבדק והושלם? גם אם לא התקבלו תשלומים כלל, החודש יוצג כמלא.`}
+            >
+              {reviewed ? "בטל סימון \"נבדק והושלם\"" : "סמן שרישום החודש נבדק והושלם"}
+            </SubmitButton>
+          </ActionForm>
+        )}
       </div>
 
       <div className="card divide-y divide-gray-100">
@@ -82,8 +111,13 @@ export default async function PaymentsPage({ searchParams }: { searchParams: { y
                 </span>
                 {o?.has_charge ? (
                   <span className="flex items-center gap-2 text-sm">
-                    {ils(o.paid_amount)} / {ils(Number(o.charge_amount) + adj)}
-                    <span className={`inline-block w-2.5 h-2.5 rounded-full ${STATUS_COLORS[status]}`} title={STATUS_LABELS[status]} />
+                    {!reviewed && Number(o.paid_amount) === 0
+                      ? `${sum.unpaidLabel} · חיוב ${ils(Number(o.charge_amount) + adj)}`
+                      : `${ils(o.paid_amount)} / ${ils(Number(o.charge_amount) + adj)}`}
+                    <span
+                      className={`inline-block w-2.5 h-2.5 rounded-full ${!reviewed && Number(o.paid_amount) === 0 ? "bg-gray-300" : STATUS_COLORS[status]}`}
+                      title={!reviewed && Number(o.paid_amount) === 0 ? sum.unpaidLabel : STATUS_LABELS[status]}
+                    />
                   </span>
                 ) : (
                   <span className="text-sm text-gray-400">
@@ -95,7 +129,7 @@ export default async function PaymentsPage({ searchParams }: { searchParams: { y
                 <div className="text-xs text-gray-400">
                   חיוב {ils(o.charge_amount)}
                   {adj !== 0 && ` · ${adj < 0 ? "זיכוי" : "חיוב נוסף"} ${ils(Math.abs(adj))}`}
-                  {` · התקבל ${ils(o.paid_amount)}`}
+                  {` · נרשם ${ils(o.paid_amount)}`}
                 </div>
               )}
 

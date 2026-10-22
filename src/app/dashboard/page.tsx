@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentAppUser } from "@/lib/current-user";
+import { balanceDisplay, latestReview } from "@/lib/completeness";
 import { STATUS_COLORS, STATUS_LABELS, type PaymentStatus } from "@/lib/types";
 
 function ils(n: number) {
@@ -23,6 +24,19 @@ export default async function DashboardPage() {
   const now = new Date();
   const year = now.getFullYear();
   const month = now.getMonth() + 1;
+
+  const { count: txCount } = await supabase
+    .from("transactions")
+    .select("id", { count: "exact", head: true })
+    .eq("building_id", buildingId)
+    .is("voided_at", null);
+  const bal = balanceDisplay(txCount ?? 0, balance?.current_balance);
+  const { data: reviewRows } = await supabase
+    .from("fee_month_reviews")
+    .select("year, month, is_complete, created_at")
+    .eq("year", year)
+    .eq("month", month);
+  const reviewed = latestReview(reviewRows as any, year, month)?.is_complete === true;
 
   const { data: payments } = await supabase
     .from("monthly_payments")
@@ -54,7 +68,11 @@ export default async function DashboardPage() {
       <div className="grid grid-cols-2 gap-3">
         <div className="card">
           <div className="text-sm text-gray-500">💰 יתרה בקופה</div>
-          <div className="big-number text-brand-700">{ils(balance?.current_balance ?? 0)}</div>
+          {bal.verified ? (
+            <div className="big-number text-brand-700">{ils(bal.balance)}</div>
+          ) : (
+            <div className="text-sm font-semibold text-amber-700 mt-1">{bal.message}</div>
+          )}
         </div>
         <div className="card">
           <div className="text-sm text-gray-500">📥 הכנסות החודש</div>
@@ -65,10 +83,11 @@ export default async function DashboardPage() {
           <div className="big-number">{ils(monthExpense)}</div>
         </div>
         <div className="card">
-          <div className="text-sm text-gray-500">🏠 גביית ועד</div>
+          <div className="text-sm text-gray-500">🏠 גביית ועד {!reviewed && "(רישום חלקי)"}</div>
           <div className="big-number">
             {paidCount}/{totalApts}
           </div>
+          {!reviewed && <div className="text-xs text-amber-700">הרישום חלקי ואינו בהכרח משקף את החוב בפועל</div>}
         </div>
       </div>
 

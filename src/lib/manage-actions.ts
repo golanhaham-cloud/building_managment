@@ -456,3 +456,20 @@ export async function changeUserRole(_p: State, fd: FormData): Promise<State> {
     return "התפקיד עודכן ונרשם ביומן.";
   });
 }
+
+// ---------- month record completeness (display marker only) ----------
+export async function setMonthReview(_p: State, fd: FormData): Promise<State> {
+  return run(["/payments", "/dashboard"], async () => {
+    await admin();
+    const supabase = createClient();
+    const year = num(fd, "year");
+    const month = num(fd, "month");
+    const complete = s(fd, "complete") === "true";
+    if (!year || !month) throw new Error("INVALID: חודש לא תקין");
+    const { error } = await supabase.rpc("set_month_review", {
+      p_year: year, p_month: month, p_complete: complete, p_note: s(fd, "note") || null,
+    });
+    if (error) throw new Error(error.message);
+    return complete ? "החודש סומן כנבדק ומושלם." : "הסימון בוטל; הרישום לחודש מוצג שוב כחלקי.";
+  });
+}
