@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentAppUser } from "@/lib/current-user";
 import { balanceDisplay, latestReview, rowState, sortByFloorThenNumber, NEUTRAL_NOTE } from "@/lib/completeness";
 import Link from "next/link";
+import { monthName } from "@/components/ui";
 import { STATUS_COLORS } from "@/lib/types";
 
 const DOT = { paid: STATUS_COLORS.paid, partial: STATUS_COLORS.partial, unpaid: STATUS_COLORS.unpaid, neutral: "bg-gray-300" };
@@ -65,7 +66,9 @@ export default async function DashboardPage() {
   const { data: thisMonthTx } = await supabase
     .from("transactions")
     .select("type, amount")
-    .gte("date", `${year}-${String(month).padStart(2, "0")}-01`);
+    .is("voided_at", null)
+    .gte("date", `${year}-${String(month).padStart(2, "0")}-01`)
+    .lt("date", month === 12 ? `${year + 1}-01-01` : `${year}-${String(month + 1).padStart(2, "0")}-01`);
 
   const monthIncome =
     thisMonthTx?.filter((t) => t.type === "income").reduce((s, t) => s + Number(t.amount), 0) ?? 0;
@@ -74,6 +77,9 @@ export default async function DashboardPage() {
 
   const paidCount = payments?.filter((p) => p.status === "paid").length ?? 0;
   const totalApts = payments?.length ?? 0;
+  const monthLabel = `${monthName(month)} ${year}`;
+  const chargesTotal = (payments ?? []).reduce((s, p: any) => s + Number(p.amount_due), 0);
+  const recordedTotal = (payments ?? []).reduce((s, p: any) => s + Number(p.amount_paid), 0);
   const pct = totalApts ? Math.round((paidCount / totalApts) * 100) : 0;
 
   return (
@@ -100,35 +106,48 @@ export default async function DashboardPage() {
         )}
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <div className="card">
-          <div className="text-sm text-gray-500">💰 יתרה בקופה</div>
-          {bal.verified ? (
+      {bal.verified ? (
+        <div className="grid grid-cols-2 gap-3">
+          <div className="card col-span-2">
+            <div className="text-sm text-gray-500">💰 יתרת קופה כוללת</div>
             <div className="big-number text-brand-700">{ils(bal.balance)}</div>
-          ) : (
-            <div className="text-sm font-semibold text-amber-700 mt-1">{bal.message}</div>
+            <div className="text-xs text-gray-400">יתרה מצטברת, לא נתון של {monthLabel}</div>
+          </div>
+          <div className="card">
+            <div className="text-sm text-gray-500">📥 הכנסות {monthLabel}</div>
+            <div className="big-number">{ils(monthIncome)}</div>
+          </div>
+          <div className="card">
+            <div className="text-sm text-gray-500">📤 הוצאות {monthLabel}</div>
+            <div className="big-number">{ils(monthExpense)}</div>
+          </div>
+        </div>
+      ) : (
+        <div className="card border border-amber-200 bg-amber-50">
+          <div className="font-semibold text-amber-800">💰 טרם נרשמו תנועות; יתרת הקופה אינה מאומתת</div>
+          <p className="text-xs text-amber-800 mt-1">
+            זה לא אומר שאין חיובים או תשלומים: חיובי הוועד והתשלומים שנרשמו מוצגים בנפרד, בכרטיס הגבייה למטה.
+          </p>
+          {isAdmin && (
+            <div className="flex gap-2 mt-3">
+              <Link href="/finances" className="flex-1 text-center text-sm font-semibold rounded-xl border border-brand-600 text-brand-700 py-2 bg-white">רישום תנועה</Link>
+              <Link href="/finances/import" className="flex-1 text-center text-sm font-semibold rounded-xl border border-brand-600 text-brand-700 py-2 bg-white">ייבוא מהבנק</Link>
+            </div>
           )}
         </div>
-        <div className="card">
-          <div className="text-sm text-gray-500">📥 הכנסות החודש</div>
-          <div className="big-number">{ils(monthIncome)}</div>
-        </div>
-        <div className="card">
-          <div className="text-sm text-gray-500">📤 הוצאות החודש</div>
-          <div className="big-number">{ils(monthExpense)}</div>
-        </div>
-        <div className="card">
-          <div className="text-sm text-gray-500">🏠 גביית ועד {!reviewed && "(רישום חלקי)"}</div>
-          <div className="big-number">
-            {paidCount}/{totalApts}
-          </div>
-          {!reviewed && <div className="text-xs text-amber-700">הרישום חלקי ואינו בהכרח משקף את החוב בפועל</div>}
-        </div>
+      )}
+
+      <div className="card">
+        <div className="text-sm text-gray-500">🏠 גביית ועד · {monthLabel} {!reviewed && "(רישום חלקי)"}</div>
+        <div className="big-number">{paidCount}/{totalApts}</div>
+        <div className="text-xs text-gray-500">דירות שנרשם להן תשלום מלא</div>
+        <div className="text-sm mt-2">חיובי {monthLabel}: <b>{ils(chargesTotal)}</b> · תשלומים שנרשמו: <b>{ils(recordedTotal)}</b></div>
+        {!reviewed && <div className="text-xs text-amber-700 mt-1">הרישום חלקי ואינו בהכרח משקף את החוב בפועל</div>}
       </div>
 
       <div className="card">
         <div className="flex items-center justify-between mb-2">
-          <span className="font-semibold">מצב גביית ועד הבית</span>
+          <span className="font-semibold">מצב גביית ועד הבית · {monthLabel}</span>
           {reviewed && <span className="text-sm text-gray-500">{pct}%</span>}
         </div>
         {reviewed ? (
