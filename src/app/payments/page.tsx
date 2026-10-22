@@ -1,11 +1,13 @@
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentAppUser } from "@/lib/current-user";
 import { recordFeePayment, setMonthReview } from "@/lib/manage-actions";
-import { latestReview, paymentsSummary } from "@/lib/completeness";
+import { latestReview, paymentsSummary, rowState } from "@/lib/completeness";
 import { ActionForm, SubmitButton } from "@/components/forms";
 import { inp, lbl, ils, monthName } from "@/components/ui";
 import Link from "next/link";
-import { STATUS_LABELS, STATUS_COLORS, type PaymentStatus } from "@/lib/types";
+import { STATUS_COLORS } from "@/lib/types";
+
+const DOT = { paid: STATUS_COLORS.paid, partial: STATUS_COLORS.partial, unpaid: STATUS_COLORS.unpaid, neutral: "bg-gray-300" };
 
 export default async function PaymentsPage({ searchParams }: { searchParams: { year?: string; month?: string } }) {
   const now = new Date();
@@ -71,13 +73,16 @@ export default async function PaymentsPage({ searchParams }: { searchParams: { y
       <div className="card space-y-1">
         <div>חיובים: <b>{ils(sum.charges)}</b></div>
         <div>תשלומים שנרשמו: <b>{ils(sum.recorded)}</b></div>
-        <div>יתרה לפי הרישום באתר: <b>{ils(sum.balance)}</b></div>
+        <div>
+          יתרה לפי הרישום באתר:{" "}
+          {sum.balance === null ? <span className="text-gray-500">לא מוצגת עד אישור השלמת הרישום</span> : <b>{ils(sum.balance)}</b>}
+        </div>
         <div className="text-sm text-gray-500 mt-1">
           {paidCount} דירות נרשם להן תשלום מלא
           {undefinedCount > 0 && ` · ל-${undefinedCount} דירות התעריף לחודש זה לא הוגדר`}
         </div>
         {sum.partial ? (
-          <div className="mt-2 rounded-lg bg-amber-50 text-amber-800 text-sm p-2">⚠️ {sum.warning}</div>
+          <div className="mt-2 rounded-lg bg-amber-50 text-amber-800 text-sm p-2">⚠️ {sum.warning}<br />{sum.note}</div>
         ) : (
           <div className="mt-2 rounded-lg bg-green-50 text-green-800 text-sm p-2">
             ✔ רישום החודש נבדק והושלם על ידי הוועד ({new Date(review!.created_at).toLocaleDateString("he-IL")})
@@ -101,8 +106,8 @@ export default async function PaymentsPage({ searchParams }: { searchParams: { y
       <div className="card divide-y divide-gray-100">
         {sorted.map((apt) => {
           const o: any = byApt.get(apt.id);
-          const status = (o?.status ?? "unpaid") as PaymentStatus;
           const adj = Number(o?.adjustments_total ?? 0);
+          const st = o?.has_charge ? rowState({ reviewed, paid: Number(o.paid_amount), due: Number(o.charge_amount) + adj }) : null;
           return (
             <div key={apt.id} className="py-3">
               <div className="flex items-center justify-between">
@@ -111,13 +116,8 @@ export default async function PaymentsPage({ searchParams }: { searchParams: { y
                 </span>
                 {o?.has_charge ? (
                   <span className="flex items-center gap-2 text-sm">
-                    {!reviewed && Number(o.paid_amount) === 0
-                      ? `${sum.unpaidLabel} · חיוב ${ils(Number(o.charge_amount) + adj)}`
-                      : `${ils(o.paid_amount)} / ${ils(Number(o.charge_amount) + adj)}`}
-                    <span
-                      className={`inline-block w-2.5 h-2.5 rounded-full ${!reviewed && Number(o.paid_amount) === 0 ? "bg-gray-300" : STATUS_COLORS[status]}`}
-                      title={!reviewed && Number(o.paid_amount) === 0 ? sum.unpaidLabel : STATUS_LABELS[status]}
-                    />
+                    {st!.label}
+                    <span className={`inline-block w-2.5 h-2.5 rounded-full ${DOT[st!.dot]}`} title={st!.label} />
                   </span>
                 ) : (
                   <span className="text-sm text-gray-400">
@@ -129,7 +129,7 @@ export default async function PaymentsPage({ searchParams }: { searchParams: { y
                 <div className="text-xs text-gray-400">
                   חיוב {ils(o.charge_amount)}
                   {adj !== 0 && ` · ${adj < 0 ? "זיכוי" : "חיוב נוסף"} ${ils(Math.abs(adj))}`}
-                  {` · נרשם ${ils(o.paid_amount)}`}
+                  {` · נרשם ${ils(o.paid_amount)} מתוך ${ils(Number(o.charge_amount) + adj)}`}
                 </div>
               )}
 

@@ -1,7 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentAppUser } from "@/lib/current-user";
-import { balanceDisplay, latestReview } from "@/lib/completeness";
-import { STATUS_COLORS, STATUS_LABELS, type PaymentStatus } from "@/lib/types";
+import { balanceDisplay, latestReview, rowState, sortByFloorThenNumber, NEUTRAL_NOTE } from "@/lib/completeness";
+import { STATUS_COLORS } from "@/lib/types";
+
+const DOT = { paid: STATUS_COLORS.paid, partial: STATUS_COLORS.partial, unpaid: STATUS_COLORS.unpaid, neutral: "bg-gray-300" };
 
 function ils(n: number) {
   return new Intl.NumberFormat("he-IL", {
@@ -94,32 +96,35 @@ export default async function DashboardPage() {
       <div className="card">
         <div className="flex items-center justify-between mb-2">
           <span className="font-semibold">מצב גביית ועד הבית</span>
-          <span className="text-sm text-gray-500">{pct}%</span>
+          {reviewed && <span className="text-sm text-gray-500">{pct}%</span>}
         </div>
-        <div className="h-3 rounded-full bg-gray-100 overflow-hidden">
-          <div className="h-full bg-brand-500" style={{ width: `${pct}%` }} />
-        </div>
+        {reviewed ? (
+          <div className="h-3 rounded-full bg-gray-100 overflow-hidden">
+            <div className="h-full bg-brand-500" style={{ width: `${pct}%` }} />
+          </div>
+        ) : (
+          <div className="rounded-lg bg-amber-50 text-amber-800 text-sm p-2">⚠️ {NEUTRAL_NOTE}</div>
+        )}
 
         <div className="mt-4 divide-y divide-gray-100">
-          {payments
-            ?.sort((a: any, b: any) => a.apartments.floor - b.apartments.floor)
-            .map((p: any) => (
-              <div key={p.apartment_id} className="flex items-center justify-between py-2 text-sm">
+          {sortByFloorThenNumber(payments ?? [], (p: any) => Number(p.apartments.floor), (p: any) => p.apartments.apartment_number).map((p: any) => {
+            const st = rowState({ reviewed, paid: Number(p.amount_paid), due: Number(p.amount_due) });
+            return (
+              <div key={p.apartment_id} className="flex items-center justify-between gap-2 py-2 text-sm">
                 <span>
                   דירה {p.apartments.apartment_number}{" "}
                   <span className="text-gray-400">(קומה {p.apartments.floor})</span>
                 </span>
-                <span className="flex items-center gap-2">
-                  {ils(p.amount_paid)} / {ils(p.amount_due)}
-                  <span
-                    className={`inline-block w-2.5 h-2.5 rounded-full ${
-                      STATUS_COLORS[p.status as PaymentStatus]
-                    }`}
-                    title={STATUS_LABELS[p.status as PaymentStatus]}
-                  />
+                <span className="flex items-center gap-2 text-end">
+                  <span>
+                    {st.label}
+                    <span className="block text-xs text-gray-400">{ils(p.amount_paid)} / {ils(p.amount_due)}</span>
+                  </span>
+                  <span className={`inline-block w-2.5 h-2.5 rounded-full shrink-0 ${DOT[st.dot]}`} title={st.label} />
                 </span>
               </div>
-            ))}
+            );
+          })}
         </div>
       </div>
     </div>

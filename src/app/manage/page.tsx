@@ -5,6 +5,8 @@ const links = [
   { href: "/manage/fees", icon: "🧾", title: "תעריפים, חיובים וזיכויים", desc: "תעריף ועד לפי חודש, חיוב חודשי, זיכויים" },
   { href: "/payments", icon: "💳", title: "תשלומי ועד", desc: "רישום תשלומים שהתקבלו" },
   { href: "/finances", icon: "💰", title: "הכנסות והוצאות", desc: "הוספה, תיקון וביטול עם סיבה" },
+  { href: "/manage/tasks", icon: "✅", title: "משימות ועד 🔒", desc: "אחראי, תאריך יעד, סטטוס והערות — פרטי לוועד" },
+  { href: "/manage/documents", icon: "🗂️", title: "ארכיון מסמכי ועד 🔒", desc: "העלאה, פתיחה והורדה — פרטי לוועד" },
   { href: "/manage/suppliers", icon: "🧰", title: "ספקים", desc: "פרטי ספקים וחוזים" },
   { href: "/requests", icon: "🔧", title: "פניות ותקלות", desc: "עדכון סטטוס וטיפול" },
   { href: "/projects", icon: "📋", title: "תוכניות", desc: "תכנון ומעקב" },

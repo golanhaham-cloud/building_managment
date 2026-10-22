@@ -10,14 +10,14 @@ export const FIELD_LABELS: Record<string, string> = {
   amount_paid: "שולם", amount_due: "חיוב", status: "סטטוס", effective_from: "תחילת תוקף", scope: "היקף",
   reason: "סיבה", role: "תפקיד", title: "כותרת", body: "תוכן", name: "שם", note: "הערה", is_important: "חשוב",
   estimated_cost: "עלות משוערת", funded_so_far: "מומן עד כה", target_date: "תאריך יעד", monthly_cost: "עלות חודשית",
-  fee_year: "שנת ועד", fee_month: "חודש ועד", year: "שנה", month: "חודש",
+  urgency: "דחיפות", assignee: "אחראי", due_date: "תאריך יעד", doc_date: "תאריך מסמך", file_name: "שם קובץ", removed_at: "הוסר בתאריך", is_complete: "הושלם", fee_year: "שנת ועד", fee_month: "חודש ועד", year: "שנה", month: "חודש",
 };
 
 export const ENTITY_LABELS: Record<string, string> = {
   apartments: "דירה", residents: "דייר", transactions: "תנועה כספית", monthly_payments: "חיוב ועד",
   fee_tariffs: "תעריף", fee_tariff_apartments: "דירות בתעריף", fee_adjustments: "זיכוי/חיוב נוסף",
   suppliers: "ספק", announcements: "הודעה", projects: "תוכנית", requests: "פנייה", documents: "מסמך",
-  internal_notes: "הערה פנימית", app_users: "הרשאות משתמש", categories: "קטגוריה",
+  internal_notes: "הערה פנימית", committee_tasks: "משימת ועד", committee_documents: "מסמך ועד", request_attachments: "קובץ בפנייה", app_users: "הרשאות משתמש", categories: "קטגוריה",
 };
 
 const SKIP = new Set(["row_version", "updated_at", "created_at", "idempotency_key"]);

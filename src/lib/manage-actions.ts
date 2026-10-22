@@ -427,6 +427,7 @@ export async function saveRequest(_p: State, fd: FormData): Promise<State> {
           title: s(fd, "title"),
           description: s(fd, "description") || null,
           category: s(fd, "category") || null,
+          urgency: ["low", "normal", "high", "urgent"].includes(s(fd, "urgency")) ? s(fd, "urgency") : null,
           status,
           updated_at: new Date().toISOString(),
           row_version: num(fd, "row_version"),
@@ -471,5 +472,39 @@ export async function setMonthReview(_p: State, fd: FormData): Promise<State> {
     });
     if (error) throw new Error(error.message);
     return complete ? "החודש סומן כנבדק ומושלם." : "הסימון בוטל; הרישום לחודש מוצג שוב כחלקי.";
+  });
+}
+
+// ---------- committee tasks (committee-only; RLS enforces admin) ----------
+export async function saveTask(_p: State, fd: FormData): Promise<State> {
+  return run(["/manage/tasks"], async () => {
+    const u = await admin();
+    const supabase = createClient();
+    const id = s(fd, "id");
+    const title = s(fd, "title");
+    if (!title) throw new Error("יש להזין כותרת למשימה");
+    const status = s(fd, "status") || "open";
+    if (!["open", "in_progress", "done", "cancelled"].includes(status)) throw new Error("סטטוס לא תקין");
+    const row = {
+      title,
+      assignee: s(fd, "assignee") || null,
+      due_date: s(fd, "due_date") || null,
+      status,
+      notes: s(fd, "notes") || null,
+    };
+    if (!id) {
+      must(await supabase.from("committee_tasks").insert({ ...row, building_id: u.building_id, created_by: u.id }).select("id"));
+      return "המשימה נוספה.";
+    }
+    const data = must(
+      await supabase
+        .from("committee_tasks")
+        .update({ ...row, updated_at: new Date().toISOString(), row_version: num(fd, "row_version") })
+        .eq("id", id)
+        .eq("building_id", u.building_id)
+        .select("id")
+    );
+    if (!data?.length) throw new Error("המשימה לא נמצאה");
+    return "המשימה עודכנה.";
   });
 }

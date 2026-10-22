@@ -1,9 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentAppUser } from "@/lib/current-user";
-import { createRequest } from "@/lib/actions";
 import { saveRequest } from "@/lib/manage-actions";
 import { ActionForm, SubmitButton } from "@/components/forms";
 import { inp } from "@/components/ui";
+import Link from "next/link";
+import { NewRequestForm } from "@/components/RequestFiles";
+import { URGENCY_BADGE, URGENCY_LABELS, URGENCY_OPTIONS } from "@/lib/files";
 import type { RequestStatus } from "@/lib/types";
 
 const STATUS_LABELS: Record<RequestStatus, string> = {
@@ -24,7 +26,7 @@ export default async function RequestsPage() {
 
   const { data: requests } = await supabase
     .from("requests")
-    .select("id, title, description, category, status, created_at, row_version, apartments(apartment_number)")
+    .select("id, title, description, category, status, urgency, created_at, row_version, apartments(apartment_number), request_attachments(id, removed_at)")
     .eq("building_id", appUser?.building_id)
     .order("created_at", { ascending: false });
 
@@ -34,38 +36,27 @@ export default async function RequestsPage() {
 
       <details className="card">
         <summary className="font-semibold cursor-pointer">+ פתיחת בקשה חדשה</summary>
-        <form action={createRequest} className="space-y-2 mt-3">
-          <input
-            type="text"
-            name="title"
-            placeholder="כותרת (למשל: נורה שרופה בקומה 2)"
-            className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm"
-            required
-          />
-          <input
-            type="text"
-            name="category"
-            placeholder="קטגוריה (תחזוקה, ניקיון וכו')"
-            className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm"
-          />
-          <textarea
-            name="description"
-            placeholder="תיאור מפורט"
-            className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm"
-            rows={2}
-          />
-          <button type="submit" className="btn-primary w-full text-sm py-1.5">
-            פתח/י בקשה
-          </button>
-        </form>
+        <NewRequestForm buildingId={appUser?.building_id ?? ""} />
       </details>
 
       <div className="space-y-2">
         {requests?.map((r: any) => (
           <div key={r.id} className="card">
             <div className="flex items-center justify-between">
-              <span className="font-semibold">{r.title}</span>
-              <span className="text-sm">{STATUS_LABELS[r.status as RequestStatus]}</span>
+              <Link href={`/requests/${r.id}`} className="font-semibold">{r.title}</Link>
+              <span className="text-sm whitespace-nowrap">{STATUS_LABELS[r.status as RequestStatus]}</span>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 mt-1">
+              {r.urgency ? (
+                <span className={`text-xs rounded-full px-2 py-0.5 ${URGENCY_BADGE[r.urgency]}`}>דחיפות: {URGENCY_LABELS[r.urgency]}</span>
+              ) : (
+                <span className="text-xs rounded-full px-2 py-0.5 bg-gray-100 text-gray-500">דחיפות: לא צוינה</span>
+              )}
+              {(() => {
+                const n = (r.request_attachments ?? []).filter((x: any) => !x.removed_at).length;
+                return n ? <span className="text-xs text-gray-500">📎 {n}</span> : null;
+              })()}
+              <Link href={`/requests/${r.id}`} className="text-xs text-brand-600 me-auto">פרטים וקבצים ›</Link>
             </div>
             {r.description && <p className="text-sm text-gray-500 mt-1">{r.description}</p>}
             <div className="text-xs text-gray-400 mt-1">
@@ -83,6 +74,10 @@ export default async function RequestsPage() {
                   <input name="title" defaultValue={r.title} className={inp} required />
                   <input name="category" defaultValue={r.category ?? ""} placeholder="קטגוריה" className={inp} />
                   <textarea name="description" defaultValue={r.description ?? ""} rows={2} className={inp} />
+                  <select name="urgency" defaultValue={r.urgency ?? ""} className={inp}>
+                    <option value="">דחיפות: לא צוינה</option>
+                    {URGENCY_OPTIONS.map((u) => <option key={u} value={u}>דחיפות: {URGENCY_LABELS[u]}</option>)}
+                  </select>
                   <select name="status" defaultValue={r.status} className={inp}>
                     {STATUS_OPTIONS.map((st) => (
                       <option key={st} value={st}>{STATUS_LABELS[st]}</option>
