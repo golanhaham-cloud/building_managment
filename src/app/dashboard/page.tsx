@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentAppUser } from "@/lib/current-user";
 import { balanceDisplay, latestReview, rowState, sortByFloorThenNumber, NEUTRAL_NOTE } from "@/lib/completeness";
+import Link from "next/link";
 import { STATUS_COLORS } from "@/lib/types";
 
 const DOT = { paid: STATUS_COLORS.paid, partial: STATUS_COLORS.partial, unpaid: STATUS_COLORS.unpaid, neutral: "bg-gray-300" };
@@ -40,6 +41,21 @@ export default async function DashboardPage() {
     .eq("month", month);
   const reviewed = latestReview(reviewRows as any, year, month)?.is_complete === true;
 
+  const isAdmin = appUser?.role === "admin";
+  const today = now.toISOString().slice(0, 10);
+  const { data: openReqs } = await supabase
+    .from("requests")
+    .select("id, urgency, status")
+    .eq("building_id", buildingId)
+    .not("status", "in", "(resolved,closed)");
+  const openReqCount = openReqs?.length ?? 0;
+  const urgentReqCount = (openReqs ?? []).filter((r: any) => r.urgency === "urgent" || r.urgency === "high").length;
+  // Committee tasks: queried for committee members only (RLS also enforces this).
+  const openTasks = isAdmin
+    ? (await supabase.from("committee_tasks").select("id, due_date, status").eq("building_id", buildingId).in("status", ["open", "in_progress"])).data ?? []
+    : null;
+  const overdueTaskCount = (openTasks ?? []).filter((t: any) => t.due_date && t.due_date < today).length;
+
   const { data: payments } = await supabase
     .from("monthly_payments")
     .select("status, amount_due, amount_paid, apartment_id, apartments(apartment_number, floor)")
@@ -65,6 +81,23 @@ export default async function DashboardPage() {
       <div>
         <p className="text-gray-500 text-sm">שלום {appUser?.role === "admin" ? "ועד הבית" : "דייר/ת"} 👋</p>
         <h1 className="text-xl font-extrabold">{building?.name ?? "הבניין שלנו"}</h1>
+      </div>
+
+      <div className={`grid gap-3 ${isAdmin ? "grid-cols-2" : "grid-cols-1"}`}>
+        <Link href="/requests" className="card block active:bg-gray-50">
+          <div className="text-sm text-gray-500">🔧 תקלות פתוחות</div>
+          <div className="big-number">{openReqCount}</div>
+          {urgentReqCount > 0 && <div className="text-xs text-orange-700">מתוכן {urgentReqCount} בדחיפות גבוהה/דחופה</div>}
+          <div className="text-xs text-brand-600 mt-1">לרשימת התקלות ›</div>
+        </Link>
+        {isAdmin && (
+          <Link href="/manage/tasks" className="card block active:bg-gray-50">
+            <div className="text-sm text-gray-500">✅ משימות ועד 🔒</div>
+            <div className="big-number">{openTasks?.length ?? 0}</div>
+            {overdueTaskCount > 0 && <div className="text-xs text-orange-700">{overdueTaskCount} עברו את תאריך היעד</div>}
+            <div className="text-xs text-brand-600 mt-1">למשימות הוועד ›</div>
+          </Link>
+        )}
       </div>
 
       <div className="grid grid-cols-2 gap-3">
@@ -106,7 +139,12 @@ export default async function DashboardPage() {
           <div className="rounded-lg bg-amber-50 text-amber-800 text-sm p-2">⚠️ {NEUTRAL_NOTE}</div>
         )}
 
-        <div className="mt-4 divide-y divide-gray-100">
+        <details className="group mt-3">
+          <summary className="list-none cursor-pointer select-none rounded-xl border border-brand-600 text-brand-700 font-semibold text-sm py-2 text-center [&::-webkit-details-marker]:hidden">
+            <span className="group-open:hidden">הצג פירוט לפי דירה ({totalApts}) ▾</span>
+            <span className="hidden group-open:inline">הסתר פירוט לפי דירה ▴</span>
+          </summary>
+        <div className="mt-3 divide-y divide-gray-100">
           {sortByFloorThenNumber(payments ?? [], (p: any) => Number(p.apartments.floor), (p: any) => p.apartments.apartment_number).map((p: any) => {
             const st = rowState({ reviewed, paid: Number(p.amount_paid), due: Number(p.amount_due) });
             return (
@@ -126,6 +164,7 @@ export default async function DashboardPage() {
             );
           })}
         </div>
+        </details>
       </div>
     </div>
   );
