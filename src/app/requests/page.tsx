@@ -19,7 +19,7 @@ const STATUS_LABELS: Record<RequestStatus, string> = {
 
 const STATUS_OPTIONS = Object.keys(STATUS_LABELS) as RequestStatus[];
 
-export default async function RequestsPage() {
+export default async function RequestsPage({ searchParams }: { searchParams: { status?: string; urgency?: string } }) {
   const supabase = createClient();
   const appUser = await getCurrentAppUser();
   const isAdmin = appUser?.role === "admin";
@@ -30,6 +30,14 @@ export default async function RequestsPage() {
     .eq("building_id", appUser?.building_id)
     .order("created_at", { ascending: false });
 
+  const fStatus = STATUS_OPTIONS.includes(searchParams.status as RequestStatus) ? (searchParams.status as RequestStatus) : "";
+  const fUrg = searchParams.urgency === "none" || URGENCY_OPTIONS.includes(searchParams.urgency as any) ? (searchParams.urgency ?? "") : "";
+  const all = requests ?? [];
+  const shown = all.filter(
+    (r: any) => (!fStatus || r.status === fStatus) && (!fUrg || (fUrg === "none" ? !r.urgency : r.urgency === fUrg)),
+  );
+  const filtered = !!(fStatus || fUrg);
+
   return (
     <div className="p-4 space-y-4">
       <h1 className="text-xl font-extrabold">בקשות ותקלות</h1>
@@ -39,8 +47,27 @@ export default async function RequestsPage() {
         <NewRequestForm buildingId={appUser?.building_id ?? ""} />
       </details>
 
+      <form method="get" className="card space-y-2">
+        <div className="grid grid-cols-2 gap-2">
+          <select name="status" defaultValue={fStatus} className={inp} aria-label="סינון לפי סטטוס">
+            <option value="">כל הסטטוסים</option>
+            {STATUS_OPTIONS.map((st) => <option key={st} value={st}>{STATUS_LABELS[st]}</option>)}
+          </select>
+          <select name="urgency" defaultValue={fUrg} className={inp} aria-label="סינון לפי דחיפות">
+            <option value="">כל רמות הדחיפות</option>
+            {URGENCY_OPTIONS.map((u) => <option key={u} value={u}>{URGENCY_LABELS[u]}</option>)}
+            <option value="none">לא צוינה</option>
+          </select>
+        </div>
+        <div className="flex items-center gap-2">
+          <button type="submit" className="btn-primary text-sm py-1.5 px-4">סנן</button>
+          {filtered && <Link href="/requests" className="text-sm text-brand-600 font-semibold">נקה סינון</Link>}
+          <span className="text-xs text-gray-500 me-auto">מוצגות {shown.length} מתוך {all.length}</span>
+        </div>
+      </form>
+
       <div className="space-y-2">
-        {requests?.map((r: any) => (
+        {shown.map((r: any) => (
           <div key={r.id} className="card">
             <div className="flex items-center justify-between">
               <Link href={`/requests/${r.id}`} className="font-semibold">{r.title}</Link>
@@ -56,9 +83,9 @@ export default async function RequestsPage() {
                 const n = (r.request_attachments ?? []).filter((x: any) => !x.removed_at).length;
                 return n ? <span className="text-xs text-gray-500">📎 {n}</span> : null;
               })()}
-              <Link href={`/requests/${r.id}`} className="text-xs text-brand-600 me-auto">פרטים וקבצים ›</Link>
+              <Link href={`/requests/${r.id}`} className="text-xs text-brand-600 me-auto">לפרטים המלאים ולקבצים ›</Link>
             </div>
-            {r.description && <p className="text-sm text-gray-500 mt-1">{r.description}</p>}
+            {r.description && <p className="text-sm text-gray-500 mt-1 line-clamp-2">{r.description}</p>}
             <div className="text-xs text-gray-400 mt-1">
               {r.apartments?.apartment_number ? `דירה ${r.apartments.apartment_number} · ` : ""}
               {new Date(r.created_at).toLocaleDateString("he-IL")}
@@ -90,7 +117,11 @@ export default async function RequestsPage() {
             )}
           </div>
         ))}
-        {!requests?.length && <p className="text-gray-400 text-sm">אין בקשות פתוחות כרגע.</p>}
+        {!shown.length && (
+          <p className="text-gray-400 text-sm">
+            {filtered ? "אין תקלות התואמות את הסינון." : "אין בקשות פתוחות כרגע."}
+          </p>
+        )}
       </div>
     </div>
   );
