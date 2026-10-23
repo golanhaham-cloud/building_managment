@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentAppUser } from "@/lib/current-user";
 import { OCCUPANCY_LABELS } from "@/lib/errors";
+import ResidentContacts from "@/components/ResidentContacts";
 
 export default async function ApartmentsPage() {
   const supabase = createClient();
@@ -61,16 +62,18 @@ export default async function ApartmentsPage() {
                       </span>
                     </div>
                     <div className="text-sm text-gray-600">
-                      {living.length
-                        ? living.map((r) => r.full_name + (r.ownership === "tenant" ? " (שוכר/ת)" : "")).join(", ")
-                        : apt.occupancy_status === "vacant"
-                        ? "הדירה ריקה"
-                        : "לא הוזן דייר"}
+                      {living.length ? (
+                        <ResidentContacts people={living.map((r) => ({ id: r.id, name: r.full_name, suffix: r.ownership === "tenant" ? " (שוכר/ת)" : "" }))} />
+                      ) : apt.occupancy_status === "vacant" ? (
+                        "הדירה ריקה"
+                      ) : (
+                        "לא הוזן דייר"
+                      )}
                       {apt.occupants_count ? ` · ${apt.occupants_count} נפשות` : ""}
                     </div>
                     {rented && owners.filter((o) => !o.lives_here).length > 0 && (
                       <div className="text-xs text-gray-500">
-                        בעל/ת הדירה: {owners.filter((o) => !o.lives_here).map((o) => o.full_name).join(", ")}
+                        בעל/ת הדירה: <ResidentContacts people={owners.filter((o) => !o.lives_here).map((o) => ({ id: o.id, name: o.full_name }))} />
                       </div>
                     )}
                   </div>
