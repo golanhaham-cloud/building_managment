@@ -92,6 +92,7 @@ export default function ImportClient({ apartments }: { apartments: Apt[] }) {
   const [rows, setRows] = useState<Row[] | null>(null);
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
+  const [reading, setReading] = useState(false);
 
   const headers = useMemo(
     () => (grid?.[headerRow] ?? []).map((h, i) => String(h ?? "").trim() || `עמודה ${i + 1}`),
@@ -103,6 +104,7 @@ export default function ImportClient({ apartments }: { apartments: Apt[] }) {
     if (!f) return;
     setMsg("");
     setRows(null);
+    setReading(true);
     try {
       const XLSX = await import("xlsx");
       const buf = await f.arrayBuffer();
@@ -133,6 +135,7 @@ export default function ImportClient({ apartments }: { apartments: Apt[] }) {
     } catch {
       setMsg("לא הצלחתי לקרוא את הקובץ. נסה לשמור אותו כ-CSV או Excel (xlsx).");
     }
+    setReading(false);
   }
 
   function buildPreview() {
@@ -224,7 +227,8 @@ export default function ImportClient({ apartments }: { apartments: Apt[] }) {
         <p className="text-sm text-gray-600">
           הורד מאתר הבנק את תנועות החשבון כקובץ Excel או CSV והעלה אותו כאן. המערכת לא מתחברת לבנק, והקובץ נקרא בדפדפן שלך בלבד.
         </p>
-        <input type="file" accept=".csv,.xls,.xlsx" onChange={onFile} className="text-sm" />
+        <input type="file" accept=".csv,.xls,.xlsx" onChange={onFile} aria-label="בחירת קובץ תנועות" className="text-sm" />
+        {reading && <p className="text-sm text-gray-700" role="status">קורא את הקובץ…</p>}
         {fileName && <div className="text-xs text-gray-500">{fileName}</div>}
       </div>
 
@@ -301,7 +305,7 @@ export default function ImportClient({ apartments }: { apartments: Apt[] }) {
             ))}
           </div>
           <div className="flex gap-2">
-            <button className="btn-primary flex-1 text-sm py-2" disabled={busy} onClick={save}>
+            <button className="btn-primary flex-1 text-sm py-2 min-h-[44px] aria-disabled:opacity-60 aria-disabled:cursor-wait" aria-disabled={busy || undefined} aria-busy={busy || undefined} onClick={() => { if (!busy) save(); }}>
               {busy ? "שומר..." : "שמור תנועות"}
             </button>
             <button className="flex-1 rounded-lg border border-gray-300 text-sm py-2" onClick={() => setRows(null)}>
@@ -311,7 +315,7 @@ export default function ImportClient({ apartments }: { apartments: Apt[] }) {
         </div>
       )}
 
-      {msg && <div className="card text-sm">{msg}</div>}
+      {msg && <div className="card text-sm" role={/^(שגיאה|לא הצלחתי)/.test(msg) ? "alert" : "status"}>{msg}</div>}
     </div>
   );
 }

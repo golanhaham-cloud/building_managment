@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSyncExternalStore } from "react";
+import { getServerSnapshot, getSnapshot, subscribe } from "@/lib/nav-store";
 import type { UserRole } from "@/lib/types";
 
 const items = [
@@ -24,6 +26,7 @@ const adminItems = [
 
 export default function BottomNav({ role }: { role: UserRole }) {
   const pathname = usePathname();
+  const nav = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
   const list = role === "admin" ? adminItems : items;
 
   return (
@@ -31,16 +34,23 @@ export default function BottomNav({ role }: { role: UserRole }) {
       <div className={`mx-auto max-w-3xl grid ${role === "admin" ? "grid-cols-5" : "grid-cols-7"} text-xs`}>
         {list.map((item) => {
           const active = pathname.startsWith(item.href);
+          const pending = !!nav.key && (nav.key === item.href || nav.key.startsWith(item.href + "/") || nav.key.startsWith(item.href + "?"));
           return (
             <Link
               key={item.href}
               href={item.href}
-              className={`flex flex-col items-center gap-0.5 py-2 ${
-                active ? "text-brand-600 font-bold" : "text-gray-500"
+              aria-current={active ? "page" : undefined}
+              aria-busy={pending || undefined}
+              className={`flex flex-col items-center gap-0.5 py-2 min-h-[52px] relative ${
+                pending ? "bg-brand-50 text-brand-700 font-bold" : active ? "text-brand-600 font-bold" : "text-gray-500"
               }`}
             >
-              <span className="text-lg leading-none">{item.icon}</span>
-              {item.label}
+              {pending ? (
+                <span className="nav-spinner inline-block w-5 h-5 rounded-full border-2 border-brand-200 border-t-brand-600" aria-hidden="true" />
+              ) : (
+                <span className="text-lg leading-none">{item.icon}</span>
+              )}
+              {pending ? "טוען…" : item.label}
             </Link>
           );
         })}

@@ -40,3 +40,15 @@ button[type="submit"] { min-height: 44px; }
 .ticker-track { animation: ticker-rtl linear infinite; }
 .ticker-track:hover, .ticker-track:focus-within { animation-play-state: paused !important; }
 @media (prefers-reduced-motion: reduce) { .ticker-track { animation: none !important; transform: none !important; } }
+
+/* Navigation progress (indeterminate bar + spinner). Static under reduced motion; the "טוען…" text is always shown. */
+@keyframes nav-slide { from { transform: translateX(-100%); } to { transform: translateX(400%); } }
+@keyframes nav-spin { to { transform: rotate(360deg); } }
+.nav-progress-bar { animation: nav-slide 1.1s ease-in-out infinite; }
+.nav-spinner { animation: nav-spin 0.8s linear infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .nav-progress-bar { animation: none; width: 100%; opacity: 0.55; }
+  .nav-spinner { animation: none; border-top-color: rgba(255,255,255,.4); }
+}
+/* Pressed feedback for tappable cards/links */
+a.card:active, nav a:active { filter: brightness(0.95); }

@@ -16,16 +16,22 @@ export default function ClaimPage() {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (loading) return;
     setLoading(true);
     setError(null);
-    const supabase = createClient();
-    const { data } = await supabase.rpc("claim_resident_account", { p_code: code });
-    if (data === "ok") {
-      window.location.href = "/dashboard";
-      return;
+    try {
+      const supabase = createClient();
+      const { data, error: rpcError } = await supabase.rpc("claim_resident_account", { p_code: code });
+      if (rpcError) throw rpcError;
+      if (data === "ok") {
+        window.location.href = "/dashboard";
+        return;
+      }
+      setError(ERRORS[data as string] ?? "החיבור נכשל.");
+    } catch {
+      setError("אירעה שגיאת חיבור. בדוק/י את החיבור ונסה/י שוב.");
     }
     setLoading(false);
-    setError(ERRORS[data as string] ?? "החיבור נכשל.");
   }
 
   async function logout() {
@@ -47,9 +53,9 @@ export default function ClaimPage() {
           className="w-full rounded-xl border border-gray-300 px-3 py-2 text-right"
           dir="ltr"
         />
-        {error && <p className="text-sm text-red-700">{error}</p>}
-        <button type="submit" disabled={loading} className="btn-primary w-full">
-          {loading ? "רגע..." : "המשך"}
+        {error && <p className="text-sm text-red-700" role="alert">{error}</p>}
+        <button type="submit" aria-disabled={loading || undefined} aria-busy={loading || undefined} className="btn-primary w-full min-h-[44px] aria-disabled:opacity-60 aria-disabled:cursor-wait">
+          {loading ? "מחבר..." : "המשך"}
         </button>
         <button type="button" onClick={logout} className="w-full text-sm text-gray-500">
           יציאה

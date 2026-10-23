@@ -38,9 +38,12 @@ export function AttachFilesForm({ buildingId, requestId }: { buildingId: string;
   async function go() {
     const files = Array.from(ref.current?.files ?? []);
     if (!files.length) return;
+    if (busy) return;
     setBusy(true);
-    setLog(await attachFiles(buildingId, requestId, files));
-    if (ref.current) ref.current.value = "";
+    const res = await attachFiles(buildingId, requestId, files);
+    setLog(res);
+    // Clear the picker only if everything attached; on any failure keep the selection so it can be retried.
+    if (ref.current && res.every((l) => l.startsWith("✔"))) ref.current.value = "";
     setBusy(false);
     router.refresh();
   }
@@ -49,11 +52,11 @@ export function AttachFilesForm({ buildingId, requestId }: { buildingId: string;
     <div className="space-y-2">
       <input ref={ref} aria-label="בחירת קבצים לצירוף" type="file" multiple accept={ACCEPT(REQUEST_FILE_TYPES)} className="block w-full text-sm" disabled={busy} />
       <p className="text-xs text-gray-500">{REQUEST_FILE_HINT}</p>
-      <button type="button" onClick={go} disabled={busy} className="btn-primary w-full text-sm py-2.5 min-h-[44px] disabled:opacity-60">
-        {busy ? "מעלה..." : "צרף קבצים"}
+      <button type="button" onClick={go} aria-disabled={busy || undefined} aria-busy={busy || undefined} className="btn-primary w-full text-sm py-2.5 min-h-[44px] aria-disabled:opacity-60 aria-disabled:cursor-wait">
+        {busy ? "מעלה קבצים..." : "צרף קבצים"}
       </button>
       {log.map((l, i) => (
-        <p key={i} className={`text-sm ${l.startsWith("✔") ? "text-green-700" : "text-red-700"}`}>{l}</p>
+        <p key={i} className={`text-sm ${l.startsWith("✔") ? "text-green-700" : "text-red-700"}`} role={l.startsWith("✔") ? "status" : "alert"}>{l}</p>
       ))}
     </div>
   );
@@ -106,10 +109,10 @@ export function NewRequestForm({ buildingId }: { buildingId: string }) {
         <input ref={fileRef} aria-label="בחירת קבצים לצירוף" type="file" multiple accept={ACCEPT(REQUEST_FILE_TYPES)} className="block w-full text-sm" />
         <p className="text-xs text-gray-500 mt-1">{REQUEST_FILE_HINT}</p>
       </div>
-      <button type="submit" disabled={busy} className="btn-primary w-full text-sm py-2.5 min-h-[44px] disabled:opacity-60">
-        {busy ? "שולח..." : "פתח/י בקשה"}
+      <button type="submit" aria-disabled={busy || undefined} aria-busy={busy || undefined} className="btn-primary w-full text-sm py-2.5 min-h-[44px] aria-disabled:opacity-60 aria-disabled:cursor-wait">
+        {busy ? (fileRef.current?.files?.length ? "שולח ומעלה קבצים..." : "שולח...") : "פתח/י בקשה"}
       </button>
-      {msgs.map((m, i) => <p key={i} className={`text-sm ${m.ok ? "text-green-700" : "text-red-700"}`}>{m.text}</p>)}
+      {msgs.map((m, i) => <p key={i} className={`text-sm ${m.ok ? "text-green-700" : "text-red-700"}`} role={m.ok ? "status" : "alert"}>{m.text}</p>)}
     </form>
   );
 }

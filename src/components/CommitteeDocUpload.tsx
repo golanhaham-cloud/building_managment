@@ -51,8 +51,8 @@ export default function CommitteeDocUpload({ buildingId }: { buildingId: string 
         <input ref={fileRef} aria-label="קובץ" type="file" accept={ACCEPT(COMMITTEE_DOC_TYPES)} className="block w-full text-sm" required />
         <p className="text-xs text-gray-500 mt-1">{COMMITTEE_DOC_HINT}</p>
       </div>
-      <button type="submit" disabled={busy} className="btn-primary w-full text-sm py-2.5 min-h-[44px] disabled:opacity-60">{busy ? "מעלה..." : "העלה לארכיון"}</button>
-      {msg && <p className={`text-sm ${msg.ok ? "text-green-700" : "text-red-700"}`}>{msg.text}</p>}
+      <button type="submit" aria-disabled={busy || undefined} aria-busy={busy || undefined} className="btn-primary w-full text-sm py-2.5 min-h-[44px] aria-disabled:opacity-60 aria-disabled:cursor-wait">{busy ? "מעלה..." : "העלה לארכיון"}</button>
+      {msg && <p className={`text-sm ${msg.ok ? "text-green-700" : "text-red-700"}`} role={msg.ok ? "status" : "alert"}>{msg.text}</p>}
     </form>
   );
 }

@@ -35,6 +35,16 @@ function LoginForm() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (loading) return;
+    try {
+      await submitInner();
+    } catch {
+      setLoading(false);
+      setError("אירעה שגיאת חיבור. בדוק/י את החיבור ונסה/י שוב (הפרטים שהוזנו נשמרו).");
+    }
+  }
+
+  async function submitInner() {
     setLoading(true);
     setError(null);
     const supabase = createClient();
@@ -143,9 +153,9 @@ function LoginForm() {
               />
             </>
           )}
-          {error && <p className="text-sm text-red-700">{error}</p>}
-          <button type="submit" disabled={loading} className="btn-primary w-full">
-            {loading ? "רגע..." : mode === "login" ? "כניסה" : mode === "signup" ? "הרשמה" : "שלח/י לי קישור"}
+          {error && <p className="text-sm text-red-700" role="alert">{error}</p>}
+          <button type="submit" aria-disabled={loading || undefined} aria-busy={loading || undefined} className="btn-primary w-full min-h-[44px] aria-disabled:opacity-60 aria-disabled:cursor-wait">
+            {loading ? (mode === "login" ? "מתחבר..." : mode === "signup" ? "נרשם..." : "שולח...") : mode === "login" ? "כניסה" : mode === "signup" ? "הרשמה" : "שלח/י לי קישור"}
           </button>
           <div className="flex flex-col gap-1 text-sm text-brand-600 text-center pt-1">
             {mode !== "login" && (

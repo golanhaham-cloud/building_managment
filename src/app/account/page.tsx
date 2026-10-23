@@ -7,23 +7,42 @@ export default function AccountPage() {
   const [password, setPassword] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [ok, setOk] = useState(false);
+  const [leaving, setLeaving] = useState(false);
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
+    if (loading) return;
     if (password.length < 6) {
+      setOk(false);
       setMsg("הסיסמה חייבת להכיל לפחות 6 תווים.");
       return;
     }
     setLoading(true);
-    const { error } = await createClient().auth.updateUser({ password });
+    setMsg(null);
+    try {
+      const { error } = await createClient().auth.updateUser({ password });
+      setMsg(error ? "שגיאה: " + error.message : "הסיסמה עודכנה.");
+      if (!error) setPassword("");
+      setOk(!error);
+    } catch {
+      setOk(false);
+      setMsg("אירעה שגיאת חיבור, הסיסמה לא עודכנה. נסה/י שוב.");
+    }
     setLoading(false);
-    setMsg(error ? "שגיאה: " + error.message : "הסיסמה עודכנה.");
-    if (!error) setPassword("");
   }
 
   async function logout() {
-    await createClient().auth.signOut();
-    window.location.href = "/login";
+    if (leaving) return;
+    setLeaving(true);
+    try {
+      await createClient().auth.signOut();
+      window.location.href = "/login";
+    } catch {
+      setLeaving(false);
+      setOk(false);
+      setMsg("היציאה לא הושלמה, נסה/י שוב.");
+    }
   }
 
   return (
@@ -40,13 +59,13 @@ export default function AccountPage() {
           dir="ltr"
           autoComplete="new-password"
         />
-        {msg && <p className="text-sm">{msg}</p>}
-        <button type="submit" disabled={loading} className="btn-primary w-full">
-          {loading ? "רגע..." : "שמירה"}
+        {msg && <p className={`text-sm ${ok ? "text-green-700" : "text-red-700"}`} role={ok ? "status" : "alert"}>{msg}</p>}
+        <button type="submit" aria-disabled={loading || undefined} aria-busy={loading || undefined} className="btn-primary w-full min-h-[44px] aria-disabled:opacity-60 aria-disabled:cursor-wait">
+          {loading ? "שומר..." : "שמירה"}
         </button>
       </form>
-      <button onClick={logout} className="card w-full text-sm text-red-700 font-semibold">
-        יציאה מהחשבון
+      <button onClick={logout} aria-disabled={leaving || undefined} className="card w-full text-sm text-red-700 font-semibold min-h-[44px]">
+        {leaving ? "מתנתק..." : "יציאה מהחשבון"}
       </button>
     </div>
   );
