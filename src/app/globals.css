@@ -34,3 +34,9 @@ a:focus-visible, button:focus-visible, summary:focus-visible, select:focus-visib
 /* Touch-friendly targets (min 44px) for disclosure toggles and submit buttons */
 details > summary { padding-block: 0.65rem; cursor: pointer; }
 button[type="submit"] { min-height: 44px; }
+
+/* News ticker (dashboard). RTL: headlines enter from the left and move right; the track holds two copies for a seamless loop. */
+@keyframes ticker-rtl { from { transform: translateX(0); } to { transform: translateX(50%); } }
+.ticker-track { animation: ticker-rtl linear infinite; }
+.ticker-track:hover, .ticker-track:focus-within { animation-play-state: paused !important; }
+@media (prefers-reduced-motion: reduce) { .ticker-track { animation: none !important; transform: none !important; } }

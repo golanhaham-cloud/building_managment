@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentAppUser } from "@/lib/current-user";
 import { balanceDisplay, latestReview, rowState, sortByFloorThenNumber, NEUTRAL_NOTE } from "@/lib/completeness";
 import Link from "next/link";
+import NewsTicker from "@/components/NewsTicker";
 import { monthName } from "@/components/ui";
 import { STATUS_COLORS } from "@/lib/types";
 
@@ -42,6 +43,12 @@ export default async function DashboardPage() {
     .eq("month", month);
   const reviewed = latestReview(reviewRows as any, year, month)?.is_complete === true;
 
+  const { data: latestAnnouncements } = await supabase
+    .from("announcements")
+    .select("id, title, body, is_important, created_at, building_id")
+    .eq("building_id", buildingId)
+    .order("created_at", { ascending: false })
+    .limit(5);
   const isAdmin = appUser?.role === "admin";
   const today = now.toISOString().slice(0, 10);
   const { data: openReqs } = await supabase
@@ -88,6 +95,8 @@ export default async function DashboardPage() {
         <p className="text-gray-500 text-sm">שלום {appUser?.role === "admin" ? "ועד הבית" : "דייר/ת"} 👋</p>
         <h1 className="text-xl font-extrabold">{building?.name ?? "הבניין שלנו"}</h1>
       </div>
+
+      <NewsTicker items={(latestAnnouncements ?? []).map((a: any) => ({ id: a.id, title: a.title, is_important: !!a.is_important }))} />
 
       <div className={`grid gap-3 ${isAdmin ? "grid-cols-2" : "grid-cols-1"}`}>
         <Link href="/requests" className="card block active:bg-gray-50">
