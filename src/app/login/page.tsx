@@ -15,6 +15,7 @@ export default function LoginPage() {
 const CLAIM_ERRORS: Record<string, string> = {
   email_not_found: "המייל הזה לא רשום ברשימת הדיירים. פנה/י לוועד כדי שיעדכנו אותו.",
   bad_code: "קוד הבניין שגוי.",
+  email_not_verified: "המייל עדיין לא אומת. אמת/י את המייל ונסה/י שוב.",
   no_session: "ההרשמה לא הושלמה, נסה/י להתחבר.",
 };
 
@@ -86,10 +87,15 @@ function LoginForm() {
     }
     if (!data.session) {
       setLoading(false);
-      setError("לא ניתן להשלים הרשמה. אם כבר נרשמת, עבר/י ל'כניסה'.");
+      // Email confirmation is enabled: no session until the address is confirmed.
+      setError("שלחנו לך מייל לאימות הכתובת. אחרי האימות חזר/י לכאן, עבר/י ל'כניסה' והזן/י את קוד הבניין. אם כבר נרשמת, עבר/י ל'כניסה'.");
       return;
     }
     const { data: result } = await supabase.rpc("claim_resident_account", { p_code: code });
+    if (result === "pending" || result === "rejected") {
+      window.location.href = "/claim"; // join request created: show its status
+      return;
+    }
     if (result !== "ok") {
       setLoading(false);
       setError(CLAIM_ERRORS[result as string] ?? "ההרשמה נכשלה.");

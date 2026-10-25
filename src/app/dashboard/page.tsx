@@ -62,6 +62,10 @@ export default async function DashboardPage() {
   const openTasks = isAdmin
     ? (await supabase.from("committee_tasks").select("id, due_date, status").eq("building_id", buildingId).in("status", ["open", "in_progress"])).data ?? []
     : null;
+  // Join requests: committee only (RLS also limits rows to the committee's own building).
+  const pendingJoinCount = isAdmin
+    ? (await supabase.from("join_requests").select("id", { count: "exact", head: true }).eq("building_id", buildingId).eq("status", "pending")).count ?? 0
+    : 0;
   const overdueTaskCount = (openTasks ?? []).filter((t: any) => t.due_date && t.due_date < today).length;
 
   const { data: payments } = await supabase
@@ -95,6 +99,17 @@ export default async function DashboardPage() {
         <p className="text-gray-500 text-sm">שלום {appUser?.role === "admin" ? "ועד הבית" : "דייר/ת"} 👋</p>
         <h1 className="text-xl font-extrabold">{building?.name ?? "הבניין שלנו"}</h1>
       </div>
+
+      {isAdmin && (
+        <Link href="/manage/join-requests" className="card flex items-center justify-between gap-3 active:bg-gray-50">
+          <div>
+            <div className="text-sm text-gray-500">🙋 בקשות הצטרפות 🔒</div>
+            <div className="big-number">{pendingJoinCount}</div>
+            <div className="text-xs text-gray-600">{pendingJoinCount > 0 ? "ממתינות לאישור" : "אין בקשות ממתינות"}</div>
+          </div>
+          <span className="text-xs text-brand-700">לבקשות ההצטרפות ›</span>
+        </Link>
+      )}
 
       <NewsTicker items={(latestAnnouncements ?? []).map((a: any) => ({ id: a.id, title: a.title, is_important: !!a.is_important }))} />
 

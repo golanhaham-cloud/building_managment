@@ -508,3 +508,47 @@ export async function saveTask(_p: State, fd: FormData): Promise<State> {
     return "המשימה עודכנה.";
   });
 }
+
+// ---------- join requests (approve / reject; all checks are enforced again inside the DB functions) ----------
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export async function approveJoinRequest(_p: State, fd: FormData): Promise<State> {
+  return run(["/manage/join-requests", "/dashboard", "/manage"], async () => {
+    await admin();
+    const supabase = createClient();
+    const request = s(fd, "request_id");
+    const apartment = s(fd, "apartment_id");
+    const link = s(fd, "link_resident_id");
+    if (!UUID_RE.test(request)) throw new Error("INVALID: בקשה לא תקינה");
+    if (!UUID_RE.test(apartment)) throw new Error("INVALID: יש לבחור דירה");
+    if (link && !UUID_RE.test(link)) throw new Error("INVALID: דייר לא תקין");
+    const ownership = s(fd, "ownership");
+    const lives = s(fd, "lives_here");
+    if (!link) {
+      if (!["owner", "tenant"].includes(ownership)) throw new Error("INVALID: יש לבחור בעלים או שוכר");
+      if (!["yes", "no"].includes(lives)) throw new Error("INVALID: יש לבחור האם מתגורר בדירה");
+    }
+    const { error } = await supabase.rpc("approve_join_request", {
+      p_request: request,
+      p_apartment: apartment,
+      p_full_name: s(fd, "full_name"),
+      p_ownership: link ? null : ownership,
+      p_lives_here: link ? null : lives === "yes",
+      p_link_resident: link || null,
+    });
+    if (error) throw new Error(error.message);
+    return "הבקשה אושרה. המשתמש יכול להיכנס לאתר.";
+  });
+}
+
+export async function rejectJoinRequest(_p: State, fd: FormData): Promise<State> {
+  return run(["/manage/join-requests", "/dashboard", "/manage"], async () => {
+    await admin();
+    const supabase = createClient();
+    const request = s(fd, "request_id");
+    if (!UUID_RE.test(request)) throw new Error("INVALID: בקשה לא תקינה");
+    const { error } = await supabase.rpc("reject_join_request", { p_request: request, p_reason: s(fd, "reason") });
+    if (error) throw new Error(error.message);
+    return "הבקשה נדחתה ונרשמה ביומן.";
+  });
+}

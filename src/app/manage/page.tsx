@@ -36,6 +36,7 @@ const groups: Group[] = [
     title: "ניהול מערכת",
     links: [
       { href: "/manage/audit", icon: "📜", title: "יומן שינויים", desc: "מי שינה מה ומתי" },
+      { href: "/manage/join-requests", icon: "🙋", title: "בקשות הצטרפות", desc: "אישור או דחייה של דיירים חדשים" },
       { href: "/manage/users", icon: "🔐", title: "הרשאות משתמשים", desc: "ניהול תפקידי ועד" },
       { href: "/account", icon: "👤", title: "החשבון שלי", desc: "סיסמה ויציאה" },
       { href: "/changelog", icon: "🆕", title: "גרסאות ושינויים", desc: "מה השתנה בכל גרסה של האתר" },
