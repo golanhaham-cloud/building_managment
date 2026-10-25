@@ -5,6 +5,7 @@ import { getCurrentAppUser } from "@/lib/current-user";
 import { removeRequestAttachment } from "@/lib/file-actions";
 import { ActionForm, SubmitButton } from "@/components/forms";
 import { AttachFilesForm } from "@/components/RequestFiles";
+import { DeleteButton } from "@/components/DeleteButton";
 import { URGENCY_BADGE, URGENCY_LABELS, fileIcon, fmtSize, MAX_FILES_PER_REQUEST } from "@/lib/files";
 
 const STATUS_LABELS: Record<string, string> = {
@@ -58,6 +59,9 @@ export default async function RequestDetail({ params }: { params: { id: string }
           {r.category && <span className="text-xs text-gray-500">{r.category}</span>}
         </div>
         {r.description && <p className="text-sm text-gray-700 whitespace-pre-wrap">{r.description}</p>}
+        {(isAdmin || r.opened_by === appUser?.id) && (
+          <div><DeleteButton kind="request" id={r.id} title={r.title} redirectTo="/requests" /></div>
+        )}
         <div className="text-xs text-gray-500">
           {(r.apartments as any)?.apartment_number ? `דירה ${(r.apartments as any).apartment_number} · ` : ""}
           {new Date(r.created_at).toLocaleDateString("he-IL")}

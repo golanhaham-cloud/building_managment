@@ -4,6 +4,7 @@ import { saveRequest } from "@/lib/manage-actions";
 import { ActionForm, SubmitButton } from "@/components/forms";
 import { inp } from "@/components/ui";
 import Link from "next/link";
+import { DeleteButton } from "@/components/DeleteButton";
 import { NewRequestForm } from "@/components/RequestFiles";
 import { URGENCY_BADGE, URGENCY_LABELS, URGENCY_OPTIONS } from "@/lib/files";
 import type { RequestStatus } from "@/lib/types";
@@ -26,7 +27,7 @@ export default async function RequestsPage({ searchParams }: { searchParams: { s
 
   const { data: requests } = await supabase
     .from("requests")
-    .select("id, title, description, category, status, urgency, created_at, row_version, apartments(apartment_number), request_attachments(id, removed_at)")
+    .select("id, title, description, category, status, urgency, created_at, row_version, opened_by, apartments(apartment_number), request_attachments(id, removed_at)")
     .eq("building_id", appUser?.building_id)
     .order("created_at", { ascending: false });
 
@@ -90,6 +91,12 @@ export default async function RequestsPage({ searchParams }: { searchParams: { s
               {r.apartments?.apartment_number ? `דירה ${r.apartments.apartment_number} · ` : ""}
               {new Date(r.created_at).toLocaleDateString("he-IL")}
             </div>
+
+            {(isAdmin || r.opened_by === appUser?.id) && (
+              <div className="mt-2">
+                <DeleteButton kind="request" id={r.id} title={r.title} />
+              </div>
+            )}
 
             {isAdmin && (
               <details className="mt-2">

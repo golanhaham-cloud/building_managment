@@ -4,6 +4,7 @@ import { createAnnouncement } from "@/lib/actions";
 import { saveAnnouncement } from "@/lib/manage-actions";
 import { ActionForm, SubmitButton } from "@/components/forms";
 import { inp } from "@/components/ui";
+import { DeleteButton } from "@/components/DeleteButton";
 
 export default async function AnnouncementsPage() {
   const supabase = createClient();
@@ -59,6 +60,11 @@ export default async function AnnouncementsPage() {
             <div className="text-xs text-gray-500 mt-1">
               {new Date(a.created_at).toLocaleDateString("he-IL")}
             </div>
+            {isAdmin && (
+              <div className="mt-2 flex items-center gap-3 flex-wrap">
+                <DeleteButton kind="announcement" id={a.id} title={a.title} />
+              </div>
+            )}
             {isAdmin && (
               <details className="mt-2">
                 <summary className="text-xs text-brand-600 cursor-pointer">עריכה</summary>

@@ -10,7 +10,7 @@ export const FIELD_LABELS: Record<string, string> = {
   amount_paid: "שולם", amount_due: "חיוב", status: "סטטוס", effective_from: "תחילת תוקף", scope: "היקף",
   reason: "סיבה", role: "תפקיד", title: "כותרת", body: "תוכן", name: "שם", note: "הערה", is_important: "חשוב",
   estimated_cost: "עלות משוערת", funded_so_far: "מומן עד כה", target_date: "תאריך יעד", monthly_cost: "עלות חודשית",
-  urgency: "דחיפות", assignee: "אחראי", due_date: "תאריך יעד", doc_date: "תאריך מסמך", file_name: "שם קובץ", removed_at: "הוסר בתאריך", is_complete: "הושלם", fee_year: "שנת ועד", fee_month: "חודש ועד", year: "שנה", month: "חודש",
+  urgency: "דחיפות", assignee: "אחראי", due_date: "תאריך יעד", doc_date: "תאריך מסמך", file_name: "שם קובץ", removed_at: "הוסר בתאריך", deleted_at: "נמחק בתאריך", deleted_by: "נמחק על ידי", is_complete: "הושלם", fee_year: "שנת ועד", fee_month: "חודש ועד", year: "שנה", month: "חודש",
 };
 
 export const ENTITY_LABELS: Record<string, string> = {
