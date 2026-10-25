@@ -1,7 +1,7 @@
 // Shared loading skeleton (server component). Same container/padding as real pages so the layout does not jump.
 export default function PageSkeleton({ cards = 3, title = true }: { cards?: number; title?: boolean }) {
   return (
-    <div className="p-4 space-y-4" role="status" aria-busy="true" aria-live="polite">
+    <div data-skeleton="" className="p-4 space-y-4" role="status" aria-busy="true" aria-live="polite">
       <h1 className="text-sm font-semibold text-gray-600">טוען…</h1>
       {title && <div className="h-7 w-2/5 rounded-lg bg-gray-200 animate-pulse motion-reduce:animate-none" />}
       {Array.from({ length: cards }).map((_, i) => (

@@ -1,5 +1,3 @@
-@import url("https://fonts.googleapis.com/css2?family=Assistant:wght@400;500;600;700;800&display=swap");
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -52,3 +50,14 @@ button[type="submit"] { min-height: 44px; }
 }
 /* Pressed feedback for tappable cards/links */
 a.card:active, nav a:active { filter: brightness(0.95); }
+
+/* Splash (first load only). States are set by the inline script in Splash.tsx: loading | slow | failed | done */
+.splash { min-height: 100vh; min-height: 100dvh; padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
+.splash[data-state="done"] { display: none; }
+.splash .splash-msg, .splash .splash-retry { display: none; }
+.splash[data-state="loading"] .splash-loading { display: block; }
+.splash[data-state="slow"] .splash-slow, .splash[data-state="slow"] .splash-retry { display: block; }
+.splash[data-state="failed"] .splash-fail, .splash[data-state="failed"] .splash-retry { display: block; }
+.splash[data-state="failed"] .splash-spin { display: none; }
+.splash-spin { animation: nav-spin 0.9s linear infinite; }
+@media (prefers-reduced-motion: reduce) { .splash-spin { animation: none; } }

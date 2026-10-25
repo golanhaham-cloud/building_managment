@@ -1,7 +1,9 @@
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import type { AppUser } from "@/lib/types";
 
-export async function getCurrentAppUser(): Promise<AppUser | null> {
+// cache(): the layout, the page and server actions in one request share a single lookup instead of repeating two network calls.
+export const getCurrentAppUser = cache(async (): Promise<AppUser | null> => {
   const supabase = createClient();
   const {
     data: { user },
@@ -15,4 +17,4 @@ export async function getCurrentAppUser(): Promise<AppUser | null> {
     .single();
 
   return data as AppUser | null;
-}
+});
