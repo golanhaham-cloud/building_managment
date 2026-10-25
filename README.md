@@ -65,3 +65,7 @@ values (
 
 - Project ref: `deqqnsbldpvuryvzuhsi`
 - URL: `https://deqqnsbldpvuryvzuhsi.supabase.co`
+
+## ניהול גרסאות
+
+מקור האמת: `src/lib/version.ts` (`APP_VERSION` + `CHANGELOG`). בכל שינוי באתר: מעלים את `APP_VERSION`, מוסיפים רשומה בראש `CHANGELOG`, ומעדכנים את `version` ב-`package.json` לאותו מספר. `npm test` נכשל אם אין התאמה. העמוד `/changelog` מציג את היומן, והגרסה מופיעה ב"החשבון שלי".

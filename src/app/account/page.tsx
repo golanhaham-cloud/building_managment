@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { APP_VERSION } from "@/lib/version";
 
 export default function AccountPage() {
   const [password, setPassword] = useState("");
@@ -67,6 +69,10 @@ export default function AccountPage() {
       <button onClick={logout} aria-disabled={leaving || undefined} className="card w-full text-sm text-red-700 font-semibold min-h-[44px]">
         {leaving ? "מתנתק..." : "יציאה מהחשבון"}
       </button>
+      <p className="text-xs text-gray-600 text-center">
+        גרסה <span dir="ltr" className="tabular-nums">{APP_VERSION}</span> ·{" "}
+        <Link href="/changelog" className="underline text-brand-700 inline-flex items-center min-h-[44px]">גרסאות ושינויים</Link>
+      </p>
     </div>
   );
 }

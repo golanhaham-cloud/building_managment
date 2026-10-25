@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { getResidentContact, type ContactResult } from "@/lib/contact-actions";
+import { parsePhones } from "@/lib/phones";
 
 export type Person = { id: string; name: string; suffix?: string };
 
@@ -64,19 +65,7 @@ export default function ResidentContacts({ people }: { people: Person[] }) {
           ) : (
             <>
               <div className="font-bold">{data.full_name}</div>
-              {data.phone ? (
-                <div className="flex items-center gap-3 flex-wrap">
-                  <span dir="ltr" className="font-semibold tabular-nums">{data.phone}</span>
-                  <a
-                    href={`tel:${data.phone.replace(/[^\d+]/g, "")}`}
-                    className="inline-flex items-center justify-center min-h-[44px] px-4 rounded-xl bg-brand-600 text-white font-semibold"
-                  >
-                    📞 חיוג
-                  </a>
-                </div>
-              ) : (
-                <div className="text-gray-700">לא הוזן טלפון</div>
-              )}
+              <PhoneList phone={data.phone} />
               {data.email && (
                 <div>
                   <a href={`mailto:${data.email}`} dir="ltr" className="inline-flex items-center min-h-[44px] text-brand-700 underline break-all">
@@ -96,5 +85,36 @@ export default function ResidentContacts({ people }: { people: Person[] }) {
         </div>
       )}
     </span>
+  );
+}
+
+// One row and one dial button per number; each tel: link holds only its own number.
+export function PhoneList({ phone }: { phone: string | null }) {
+  const parsed = parsePhones(phone);
+  if (parsed.kind === "empty") return <div className="text-gray-700">לא הוזן טלפון</div>;
+  if (parsed.kind === "raw") {
+    return (
+      <div className="space-y-1">
+        <div className="font-semibold whitespace-pre-line">{parsed.text}</div>
+        <div className="text-xs text-gray-600">לא ניתן לזהות את המספרים בוודאות, ולכן אין כפתור חיוג.</div>
+      </div>
+    );
+  }
+  return (
+    <ul className="space-y-2">
+      {parsed.items.map((it, i) => (
+        <li key={`${it.dial}-${i}`} className="flex items-center gap-3 flex-wrap">
+          {it.label && <span className="text-gray-700">{it.label}</span>}
+          <span dir="ltr" className="font-semibold tabular-nums">{it.display}</span>
+          <a
+            href={`tel:${it.dial}`}
+            aria-label={`חיוג ל-${it.display}${it.label ? ` (${it.label})` : ""}`}
+            className="inline-flex items-center justify-center min-h-[44px] px-4 rounded-xl bg-brand-600 text-white font-semibold"
+          >
+            📞 חיוג
+          </a>
+        </li>
+      ))}
+    </ul>
   );
 }
