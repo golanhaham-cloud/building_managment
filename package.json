@@ -1,13 +1,13 @@
 {
   "name": "livna6-building",
-  "version": "1.20.0",
+  "version": "1.21.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test": "tsx tests/completeness.test.ts && tsx tests/phones.test.ts && tsx tests/version.test.ts && tsx tests/phone-render.test.tsx && tsx tests/join-status.test.tsx && tsx tests/forecast.test.ts"
+    "test": "tsx tests/completeness.test.ts && tsx tests/phones.test.ts && tsx tests/version.test.ts && tsx tests/phone-render.test.tsx && tsx tests/join-status.test.tsx && tsx tests/forecast.test.ts && tsx tests/allocations.test.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.5.2",

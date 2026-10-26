@@ -6,6 +6,7 @@ import { ActionForm, SubmitButton } from "@/components/forms";
 import { inp, lbl, ils, monthName } from "@/components/ui";
 import Link from "next/link";
 import { STATUS_COLORS } from "@/lib/types";
+import { BASIS_LABELS, basisIsConfirmed, monthProgress } from "@/lib/allocations";
 
 const DOT = { paid: STATUS_COLORS.paid, partial: STATUS_COLORS.partial, unpaid: STATUS_COLORS.unpaid, neutral: "bg-gray-300" };
 
@@ -33,6 +34,19 @@ export default async function PaymentsPage({ searchParams }: { searchParams: { y
   const review = latestReview(reviewRows as any, year, month);
   const reviewed = review?.is_complete === true;
   const byApt = new Map((overview ?? []).map((o: any) => [o.apartment_id, o]));
+  // שיוכי הכנסות לחודש (ועד בלבד: מי שילם עבור איזו דירה אינו חשוף לדיירים).
+  const allocByApt = new Map<string, any[]>();
+  if (isAdmin) {
+    const { data: al } = await supabase
+      .from("payment_allocations")
+      .select("id, apartment_id, amount, apartment_basis, months_basis, basis_note, transactions:transaction_id(date, amount, description)")
+      .eq("building_id", appUser?.building_id)
+      .eq("kind", "fee")
+      .eq("fee_year", year)
+      .eq("fee_month", month)
+      .is("voided_at", null);
+    for (const a of al ?? []) allocByApt.set((a as any).apartment_id, [...(allocByApt.get((a as any).apartment_id) ?? []), a]);
+  }
 
   let totalDue = 0;
   let totalPaid = 0;
@@ -63,6 +77,11 @@ export default async function PaymentsPage({ searchParams }: { searchParams: { y
           </Link>
         )}
       </div>
+      {isAdmin && (
+        <Link href={`/payments/allocate?year=${year}&month=${month}`} className="card flex items-center justify-between min-h-[44px] text-sm font-semibold text-brand-700">
+          <span>שיוך הכנסה קיימת לדירה ולחודשים</span><span aria-hidden="true">←</span>
+        </Link>
+      )}
 
       <div className="flex items-center justify-between card py-3">
         <Link href={`/payments?year=${prev.year}&month=${prev.month}`} className="text-brand-700 inline-flex items-center min-h-[44px]">→ חודש קודם</Link>
@@ -130,8 +149,18 @@ export default async function PaymentsPage({ searchParams }: { searchParams: { y
                   חיוב {ils(o.charge_amount)}
                   {adj !== 0 && ` · ${adj < 0 ? "זיכוי" : "חיוב נוסף"} ${ils(Math.abs(adj))}`}
                   {` · נרשם ${ils(o.paid_amount)} מתוך ${ils(Number(o.charge_amount) + adj)}`}
+                  {monthProgress(Number(o.charge_amount) + adj, Number(o.paid_amount)).state === "partial" && (
+                    <span className="text-amber-700 font-semibold"> · תשלום חלקי</span>
+                  )}
                 </div>
               )}
+              {isAdmin && (allocByApt.get(apt.id) ?? []).map((al: any) => (
+                <div key={al.id} className="text-xs text-gray-600 mt-0.5">
+                  מתוכו {ils(al.amount)} משיוך מהכנסה של {ils(al.transactions?.amount)} שהתקבלה ב־{al.transactions?.date ? new Date(al.transactions.date).toLocaleDateString("he-IL") : "—"}
+                  {" · "}דירה: {BASIS_LABELS[al.apartment_basis as keyof typeof BASIS_LABELS] ?? "—"}{!basisIsConfirmed(al.apartment_basis) && " (לא מאושר)"}
+                  {" · "}חודשים: {BASIS_LABELS[al.months_basis as keyof typeof BASIS_LABELS] ?? "—"}{!basisIsConfirmed(al.months_basis) && " (לא מאושר)"}
+                </div>
+              ))}
 
               {isAdmin && o?.has_charge && (
                 <details className="mt-2">
@@ -152,7 +181,7 @@ export default async function PaymentsPage({ searchParams }: { searchParams: { y
                       <option value="app">ביט / פייבוקס</option>
                     </select>
                     <input type="text" aria-label="הערה" name="notes" placeholder="הערה (אופציונלי)" className={inp} />
-                    <p className="text-xs text-gray-500">התשלום נרשם פעם אחת כהכנסה בקופה ומעדכן את חיוב הדירה. אין צורך להוסיף אותו שוב ידנית.</p>
+                    <p className="text-xs text-gray-500">התשלום נרשם פעם אחת כהכנסה חדשה בקופה ומעדכן את חיוב הדירה. אם ההעברה כבר מופיעה בכספים, אל תרשום אותה כאן שוב: <Link href={`/payments/allocate?apt=${apt.id}&year=${year}&month=${month}`} className="text-brand-700 font-semibold underline">שייך הכנסה קיימת</Link>. לתשלום חדש שמכסה כמה חודשים: <Link href={`/payments/allocate?mode=new&apt=${apt.id}&year=${year}&month=${month}`} className="text-brand-700 font-semibold underline">רישום תשלום חדש לכמה חודשים</Link>.</p>
                     <SubmitButton>רשום תשלום</SubmitButton>
                   </ActionForm>
                 </details>

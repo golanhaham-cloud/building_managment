@@ -43,6 +43,13 @@ export default async function FinancesPage() {
     names = await userNameMap(supabase, (log ?? []).map((l: any) => l.user_id));
   }
 
+  // כמה מכל הכנסה שויך לדירות/חודשים (ועד בלבד). השיוך אינו משנה את הסכום או את היתרה.
+  const allocated = new Map<string, number>();
+  if (isAdmin) {
+    const { data: al } = await supabase.from("payment_allocations").select("transaction_id, amount").eq("building_id", appUser?.building_id).is("voided_at", null);
+    for (const a of al ?? []) allocated.set((a as any).transaction_id, (allocated.get((a as any).transaction_id) ?? 0) + Number((a as any).amount));
+  }
+
   const catOptions = (categories ?? []).map((c: any) => (
     <option key={c.id} value={c.id}>{c.name}</option>
   ));
@@ -110,6 +117,12 @@ export default async function FinancesPage() {
                     {t.fee_month ? ` · ועד ${t.fee_month}/${t.fee_year}` : ""}
                   </div>
                   {t.notes && <div className="text-xs text-gray-500">{t.notes}</div>}
+                  {isAdmin && !voided && (allocated.get(t.id) ?? 0) > 0 && (
+                    <div className="text-xs text-brand-700">שויך {ils(allocated.get(t.id))} מתוך {ils(t.amount)} · <Link href={`/payments/allocate?tx=${t.id}`} className="underline">פרטים</Link></div>
+                  )}
+                  {isAdmin && !voided && t.type === "income" && !t.fee_year && !(allocated.get(t.id) ?? 0) && (
+                    <div className="text-xs"><Link href={`/payments/allocate?tx=${t.id}`} className="text-brand-700 underline">שייך לדירה ולחודשים</Link></div>
+                  )}
                   {voided && <div className="text-xs text-red-700">בוטל: {t.void_reason}</div>}
                 </div>
                 <div className={`font-bold tabular-nums ${voided ? "text-gray-500 line-through" : t.type === "income" ? "text-green-700" : "text-red-700"}`}>
