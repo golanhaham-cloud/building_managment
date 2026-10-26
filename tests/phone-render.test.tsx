@@ -1,6 +1,8 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import React from "react";
 (globalThis as unknown as { React: unknown }).React = React;
+// react.cache exists only in the server build of React; the test only renders PhoneList, so a passthrough is enough.
+(React as unknown as { cache?: unknown }).cache ??= (f: unknown) => f;
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { PhoneList } = require("../src/components/ResidentContacts");
 let fails = 0;

@@ -9,6 +9,7 @@ import type { UserRole } from "@/lib/types";
 const items = [
   { href: "/dashboard", label: "ראשי", icon: "🏠" },
   { href: "/finances", label: "כספים", icon: "💰" },
+  { href: "/forecast", label: "תחזית", icon: "📈" },
   { href: "/apartments", label: "דיירים", icon: "🏢" },
   { href: "/requests", label: "תקלות", icon: "🔧" },
   { href: "/projects", label: "תוכניות", icon: "📋" },
@@ -19,6 +20,7 @@ const items = [
 const adminItems = [
   { href: "/dashboard", label: "ראשי", icon: "🏠" },
   { href: "/finances", label: "כספים", icon: "💰" },
+  { href: "/forecast", label: "תחזית", icon: "📈" },
   { href: "/apartments", label: "דיירים", icon: "🏢" },
   { href: "/requests", label: "תקלות", icon: "🔧" },
   { href: "/manage", label: "ניהול", icon: "⚙️" },
@@ -31,7 +33,7 @@ export default function BottomNav({ role }: { role: UserRole }) {
 
   return (
     <nav className="fixed bottom-0 inset-x-0 bg-white border-t border-gray-200 z-20">
-      <div className={`mx-auto max-w-3xl grid ${role === "admin" ? "grid-cols-5" : "grid-cols-7"} text-xs`}>
+      <div className={`mx-auto max-w-3xl grid ${role === "admin" ? "grid-cols-6" : "grid-cols-8"} text-[11px] sm:text-xs`}>
         {list.map((item) => {
           const active = pathname.startsWith(item.href);
           const pending = !!nav.key && (nav.key === item.href || nav.key.startsWith(item.href + "/") || nav.key.startsWith(item.href + "?"));

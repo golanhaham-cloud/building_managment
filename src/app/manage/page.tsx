@@ -10,6 +10,7 @@ const groups: Group[] = [
       { href: "/manage/fees", icon: "🧾", title: "תעריפים, חיובים וזיכויים", desc: "תעריף ועד לפי חודש, חיוב חודשי, זיכויים" },
       { href: "/payments", icon: "💳", title: "תשלומי ועד", desc: "רישום תשלומים שהתקבלו" },
       { href: "/finances", icon: "💰", title: "הכנסות והוצאות", desc: "הוספה, תיקון וביטול עם סיבה" },
+      { href: "/forecast", icon: "📈", title: "הוצאות קבועות ותחזית", desc: "אומדן חודשי, הנחות ותרחיש (לא יתרת בנק)" },
       { href: "/finances/import", icon: "🏦", title: "ייבוא מהבנק", desc: "ייבוא תנועות מקובץ" },
       { href: "/manage/suppliers", icon: "🧰", title: "ספקים", desc: "פרטי ספקים וחוזים" },
     ],

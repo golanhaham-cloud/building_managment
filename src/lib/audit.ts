@@ -17,7 +17,7 @@ export const ENTITY_LABELS: Record<string, string> = {
   apartments: "דירה", residents: "דייר", transactions: "תנועה כספית", monthly_payments: "חיוב ועד",
   fee_tariffs: "תעריף", fee_tariff_apartments: "דירות בתעריף", fee_adjustments: "זיכוי/חיוב נוסף",
   suppliers: "ספק", announcements: "הודעה", projects: "תוכנית", requests: "פנייה", documents: "מסמך",
-  internal_notes: "הערה פנימית", committee_tasks: "משימת ועד", committee_documents: "מסמך ועד", request_attachments: "קובץ בפנייה", app_users: "הרשאות משתמש", join_requests: "בקשת הצטרפות", categories: "קטגוריה",
+  internal_notes: "הערה פנימית", committee_tasks: "משימת ועד", committee_documents: "מסמך ועד", request_attachments: "קובץ בפנייה", app_users: "הרשאות משתמש", join_requests: "בקשת הצטרפות", forecast_items: "סעיף תחזית", forecast_settings: "הנחות תחזית", forecast_scenarios: "תרחיש תחזית", forecast_one_offs: "הוצאה צפויה מיוחדת", categories: "קטגוריה",
 };
 
 const SKIP = new Set(["row_version", "updated_at", "created_at", "idempotency_key"]);
