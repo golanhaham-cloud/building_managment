@@ -3,6 +3,7 @@ import { getCurrentAppUser } from "@/lib/current-user";
 import { balanceDisplay, latestReview, rowState, sortByFloorThenNumber, NEUTRAL_NOTE } from "@/lib/completeness";
 import Link from "next/link";
 import NewsTicker from "@/components/NewsTicker";
+import BalanceBreakdown from "@/components/BalanceBreakdown";
 import { monthName } from "@/components/ui";
 import { STATUS_COLORS } from "@/lib/types";
 
@@ -134,8 +135,9 @@ export default async function DashboardPage() {
         <div className="grid grid-cols-2 gap-3">
           <div className="card col-span-2">
             <div className="text-sm text-gray-500">💰 יתרת קופה כוללת</div>
-            <div className="big-number text-brand-700">{ils(bal.balance)}</div>
+            <div className="big-number text-brand-700">{new Intl.NumberFormat("he-IL", { style: "currency", currency: "ILS", maximumFractionDigits: 2 }).format(bal.balance)}</div>
             <div className="text-xs text-gray-500">יתרה מצטברת, לא נתון של {monthLabel}</div>
+            <BalanceBreakdown row={balance as any} />
           </div>
           <div className="card">
             <div className="text-sm text-gray-500">📥 הכנסות {monthLabel}</div>

@@ -6,6 +6,7 @@ import AuditList from "@/components/AuditList";
 import { userNameMap, type AuditEntry } from "@/lib/audit";
 import { inp, lbl, btnDanger, ils } from "@/components/ui";
 import Link from "next/link";
+import BalanceBreakdown from "@/components/BalanceBreakdown";
 
 export default async function FinancesPage() {
   const supabase = createClient();
@@ -18,6 +19,8 @@ export default async function FinancesPage() {
     .eq("building_id", appUser?.building_id)
     .order("date", { ascending: false })
     .order("created_at", { ascending: false });
+
+  const { data: balanceRow } = await supabase.from("building_balance").select("*").eq("building_id", appUser?.building_id).maybeSingle();
 
   const [{ data: categories }, { data: suppliers }] = isAdmin
     ? await Promise.all([
@@ -64,6 +67,12 @@ export default async function FinancesPage() {
         <Link href="/payments" className="inline-flex items-center min-h-[44px] text-sm text-brand-700 font-semibold">
           תשלומי ועד ←
         </Link>
+      </div>
+      <div className="card">
+        <div className="text-sm text-gray-500">💰 יתרת קופה מחושבת</div>
+        <div className="big-number text-brand-700">{ils(Number((balanceRow as any)?.current_balance ?? 0))}</div>
+        <BalanceBreakdown row={balanceRow as any} />
+        {isAdmin && <Link href="/manage/opening-balance" className="text-xs text-brand-700 underline inline-flex items-center min-h-[44px]">יתרת פתיחה ותאריך תחילת רישום</Link>}
       </div>
 
       {isAdmin && (
