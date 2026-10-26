@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentAppUser } from "@/lib/current-user";
-import { balanceDisplay, latestReview, rowState, sortByFloorThenNumber, NEUTRAL_NOTE } from "@/lib/completeness";
+import { balanceDisplay, latestReview, sortByFloorThenNumber, NEUTRAL_NOTE } from "@/lib/completeness";
+import { collectionSummary } from "@/lib/collection";
 import Link from "next/link";
 import NewsTicker from "@/components/NewsTicker";
 import BalanceBreakdown from "@/components/BalanceBreakdown";
@@ -69,11 +70,12 @@ export default async function DashboardPage() {
     : 0;
   const overdueTaskCount = (openTasks ?? []).filter((t: any) => t.due_date && t.due_date < today).length;
 
-  const { data: payments } = await supabase
-    .from("monthly_payments")
-    .select("status, amount_due, amount_paid, apartment_id, apartments(apartment_number, floor)")
-    .eq("year", year)
-    .eq("month", month);
+  // אותו מקור חישוב של מסך התשלומים: month_fee_overview (חיוב בסיס + חיובים נוספים − זיכויים).
+  const [{ data: overview }, { data: aptRows }] = await Promise.all([
+    supabase.rpc("month_fee_overview", { p_year: year, p_month: month }),
+    supabase.from("apartments").select("id, apartment_number, floor").eq("building_id", buildingId),
+  ]);
+  const aptById = new Map((aptRows ?? []).map((a: any) => [a.id, a]));
 
   const { data: thisMonthTx } = await supabase
     .from("transactions")
@@ -87,12 +89,13 @@ export default async function DashboardPage() {
   const monthExpense =
     thisMonthTx?.filter((t) => t.type === "expense").reduce((s, t) => s + Number(t.amount), 0) ?? 0;
 
-  const paidCount = payments?.filter((p) => p.status === "paid").length ?? 0;
-  const totalApts = payments?.length ?? 0;
   const monthLabel = `${monthName(month)} ${year}`;
-  const chargesTotal = (payments ?? []).reduce((s, p: any) => s + Number(p.amount_due), 0);
-  const recordedTotal = (payments ?? []).reduce((s, p: any) => s + Number(p.amount_paid), 0);
-  const pct = totalApts ? Math.round((paidCount / totalApts) * 100) : 0;
+  const coll = collectionSummary((overview ?? []) as any, reviewed);
+  const paidCount = coll.fullCount;
+  const totalApts = coll.count;
+  const chargesTotal = coll.due;
+  const recordedTotal = coll.paid;
+  const pct = coll.pct;
 
   return (
     <div className="p-4 space-y-4">
@@ -167,7 +170,11 @@ export default async function DashboardPage() {
         <div className="text-sm text-gray-500">🏠 גביית ועד · {monthLabel} {!reviewed && "(רישום חלקי)"}</div>
         <div className="big-number">{paidCount}/{totalApts}</div>
         <div className="text-xs text-gray-500">דירות שנרשם להן תשלום מלא</div>
-        <div className="text-sm mt-2">חיובי {monthLabel}: <b>{ils(chargesTotal)}</b> · תשלומים שנרשמו: <b>{ils(recordedTotal)}</b></div>
+        <div className="text-sm mt-2 space-y-0.5">
+          <div>{isAdmin ? "סך חיובים לחודש" : "סך חיובי בסיס (לפני התאמות)"}: <b>{ils(chargesTotal)}</b></div>
+          <div>סך ששולם: <b>{ils(recordedTotal)}</b></div>
+        </div>
+        {!isAdmin && <div className="text-xs text-gray-500 mt-1">החיוב בפועל כולל התאמות (חיובים נוספים וזיכויים) שנרשמו לדירות; הן מוצגות לוועד בלבד, והסטטוס מחושב לפי החיוב המעודכן.</div>}
         {!reviewed && <div className="text-xs text-amber-700 mt-1">הרישום חלקי ואינו בהכרח משקף את החוב בפועל</div>}
       </div>
 
@@ -190,18 +197,20 @@ export default async function DashboardPage() {
             <span className="hidden group-open:inline">הסתר פירוט לפי דירה ▴</span>
           </summary>
         <div className="mt-3 divide-y divide-gray-100">
-          {sortByFloorThenNumber(payments ?? [], (p: any) => Number(p.apartments.floor), (p: any) => p.apartments.apartment_number).map((p: any) => {
-            const st = rowState({ reviewed, paid: Number(p.amount_paid), due: Number(p.amount_due) });
+          {sortByFloorThenNumber(coll.list, (p) => Number(aptById.get(p.apartment_id)?.floor ?? 0), (p) => aptById.get(p.apartment_id)?.apartment_number ?? 0).map((p) => {
+            const apt: any = aptById.get(p.apartment_id);
+            const st = p.state;
             return (
               <div key={p.apartment_id} className="flex items-center justify-between gap-2 py-2 text-sm">
                 <span>
-                  דירה {p.apartments.apartment_number}{" "}
-                  <span className="text-gray-500">(קומה {p.apartments.floor})</span>
+                  דירה {apt?.apartment_number}{" "}
+                  <span className="text-gray-500">(קומה {apt?.floor})</span>
                 </span>
                 <span className="flex items-center gap-2 text-end">
                   <span>
                     {st.label}
-                    <span className="block text-xs text-gray-500">{ils(p.amount_paid)} / {ils(p.amount_due)}</span>
+                    <span className="block text-xs text-gray-500">שולם: {ils(p.paid)}</span>
+                    <span className="block text-xs text-gray-500">{isAdmin ? "חיוב לחודש" : "חיוב בסיס (לפני התאמות)"}: {ils(p.due)}</span>
                   </span>
                   <span className={`inline-block w-2.5 h-2.5 rounded-full shrink-0 ${DOT[st.dot]}`} title={st.label} />
                 </span>
