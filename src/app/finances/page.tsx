@@ -115,7 +115,7 @@ export default async function FinancesPage() {
         {tx?.map((t: any) => {
           const voided = !!t.voided_at;
           return (
-            <div key={t.id} className="py-3">
+            <div key={t.id} id={`tx-${t.id}`} className="py-3 scroll-mt-4">
               <div className="flex items-center justify-between">
                 <div className={voided ? "opacity-60" : ""}>
                   <div className={`font-semibold ${voided ? "line-through" : ""}`}>{t.description ?? t.categories?.name}</div>

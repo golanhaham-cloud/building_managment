@@ -11,6 +11,7 @@ import {
   coverageSummary, decisionRoom, fromAg, groupByApartment, monthRange, overallTotals, resolvePeriod, ymKey,
   type MonthStatus, type StatusRow, type Totals,
 } from "@/lib/collection-status";
+import { groupUnallocated, groupsTotalAg, type GroupedItem } from "@/lib/income-classes";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -127,8 +128,19 @@ export default async function CollectionPage({ searchParams }: { searchParams: S
   }
   void decIds;
 
-  const unallocated = ((srcs ?? []) as any[]).filter((s) => Number(s.available) > 0.004);
-  const unallocatedAg = unallocated.reduce((s, x) => s + Math.round(Number(x.available) * 100), 0);
+  // סיווג המקורות לתצוגה בלבד: קוראים את הסיווג המפורש הקיים (קטגוריה, דירת מקור) ללא שינוי רישומים.
+  const srcList = ((srcs ?? []) as any[]).filter((s) => Number(s.available) > 0.004);
+  const { data: srcMeta } = srcList.length
+    ? await supabase.from("transactions").select("id, source_apartment_id, categories(name)").eq("building_id", appUser.building_id).in("id", srcList.map((s) => s.id))
+    : { data: [] as any[] };
+  const metaTx = new Map<string, any>((srcMeta ?? []).map((m: any) => [m.id, m]));
+  const grouped = groupUnallocated(
+    srcList.map((s) => ({
+      id: s.id, date: s.date, amount: s.amount, allocated: s.allocated, available: s.available, description: s.description,
+      category_name: metaTx.get(s.id)?.categories?.name ?? null, apartment_id: metaTx.get(s.id)?.source_apartment_id ?? null,
+    })),
+  );
+  const allUnallocatedAg = groupsTotalAg(grouped);
 
   const [doneCode, doneKind] = String(searchParams.done ?? "").split(".");
   const kindLabel = doneKind === "reduction" ? "הפחתה שאושרה" : "חוב מאומת";
@@ -258,20 +270,14 @@ export default async function CollectionPage({ searchParams }: { searchParams: S
         </>
       )}
 
-      <section className="card space-y-2" aria-label="כספים שהתקבלו וטרם שויכו">
+      <section className="space-y-3" aria-label="כספים שהתקבלו וטרם שויכו">
         <h2 className="font-bold">כספים שהתקבלו וטרם שויכו</h2>
-        <p className="text-xs text-gray-600">הכנסות שנרשמו בכספים ועדיין יש בהן יתרה שלא שויכה לדירה או לחודש. הן כבר נספרות כהכנסה בקופה, אינן מקוזזות אוטומטית מחוב של דירה, ואינן נרשמות מחדש כהכנסה. חלקן אולי אינן דמי ועד כלל. לשיוך: <Link href="/payments/allocate" className="text-brand-700 font-semibold underline">שיוך הכנסה</Link>.</p>
-        {unallocated.length === 0 ? <p className="text-sm text-gray-500">אין כספים שטרם שויכו.</p> : (
-          <ul className="divide-y divide-gray-100 text-sm">
-            {unallocated.map((s) => (
-              <li key={s.id} className="py-2">
-                <div className="flex justify-between gap-2"><span className="font-semibold break-words min-w-0">{s.description || "ללא תיאור"}</span><b className="whitespace-nowrap">{ils(Number(s.available))}</b></div>
-                <div className="text-xs text-gray-600">התקבל ב־{dateHe(s.date)} · סכום מקורי {ils(Number(s.amount))}{Number(s.allocated) > 0 ? ` · שויך ${ils(Number(s.allocated))}` : ""}</div>
-              </li>
-            ))}
-            <li className="py-2 flex justify-between font-bold"><span>סך הכול טרם שויך</span><span>{money(unallocatedAg)}</span></li>
-          </ul>
-        )}
+        <p className="text-xs text-gray-600">הכנסות שנרשמו בכספים ועדיין יש בהן יתרה שלא שויכה. כולן כבר נספרות כהכנסה בקופה, אינן מקוזזות אוטומטית מחוב של דירה ואינן נרשמות מחדש. החלוקה לקבוצות לתצוגה בלבד ואינה משנה רישום: כל יתרה מופיעה בקבוצה אחת. שיוך חלקי: מוצגת רק היתרה שלא שויכה.</p>
+        <p className="text-sm" data-total="all">סך הכול יתרות שטרם שויכו: <b>{money(allUnallocatedAg)}</b> <span className="text-xs text-gray-500">= {money(grouped.resident.totalAg)} תקבולי דיירים + {money(grouped.livna4_refund.totalAg)} החזרי ליבנה 4 + {money(grouped.needs_review.totalAg)} לבירור סיווג</span></p>
+
+        <IncomeGroupCard id="resident" title="תקבולי דיירים שטרם שויכו" note="יתרות תשלומי דיירים שממתינות לבירור או לשיוך. אין לשייך לחודש בלי אישור." group={grouped.resident} empty="אין תקבולי דיירים שטרם שויכו." mode="allocate" />
+        <IncomeGroupCard id="refunds" title="החזרים מליבנה 4" note="החזרי חשמל, משאבות והוצאות משותפות מוועד בית ליבנה 4. הם נשארים הכנסה בקופת הבניין, אינם תשלום דייר, ואין לשייכם לדירה או לקזזם מפערי דירות." group={grouped.livna4_refund} empty="אין החזרים מליבנה 4." mode="refund" />
+        <IncomeGroupCard id="review" title="תקבולים שסיווגם דורש בירור" note="לא ניתן לסווג בביטחון לפי המקור והתיאור. אינם נחשבים אוטומטית לתשלום דייר או להחזר." group={grouped.needs_review} empty="אין תקבולים שסיווגם דורש בירור." mode="review" />
       </section>
     </div>
   );
@@ -366,5 +372,32 @@ function MonthBlock({ m, apt, allocs, direct, decs, log, names, filters }: {
         )}
       </div>
     </details>
+  );
+}
+
+function IncomeGroupCard({ id, title, note, group, empty, mode }: { id: string; title: string; note: string; group: { items: GroupedItem[]; totalAg: number }; empty: string; mode: "allocate" | "refund" | "review" }) {
+  return (
+    <div className="card space-y-2" data-income-group={id}>
+      <div className="flex items-baseline justify-between gap-2">
+        <h3 className="font-semibold">{title}</h3>
+        <b className="whitespace-nowrap" data-group-total={id}>{money(group.totalAg)}</b>
+      </div>
+      <p className="text-xs text-gray-600">{note}</p>
+      {group.items.length === 0 ? <p className="text-sm text-gray-500">{empty}</p> : (
+        <ul className="divide-y divide-gray-100 text-sm">
+          {group.items.map((s) => (
+            <li key={s.id} className="py-2" data-income-row={s.id}>
+              <div className="flex justify-between gap-2"><span className="font-semibold break-words min-w-0">{s.description || "ללא תיאור"}</span><b className="whitespace-nowrap">{ils(Number(s.available))}</b></div>
+              <div className="text-xs text-gray-600">התקבל ב־{dateHe(s.date)}{Number(s.allocated) > 0 ? ` · סכום מקורי ${ils(Number(s.amount))} · שויך ${ils(Number(s.allocated))}` : ""}</div>
+              {mode === "review" && <div className="text-xs text-amber-800">{s.reason}</div>}
+              <div className="flex flex-wrap gap-x-4">
+                <Link href={`/finances#tx-${s.id}`} className="text-xs text-brand-700 underline inline-flex items-center min-h-[44px]">לתנועה בכספים</Link>
+                {mode !== "refund" && <Link href={`/payments/allocate?tx=${s.id}`} className="text-xs text-brand-700 underline inline-flex items-center min-h-[44px]">{mode === "review" ? "שיוך (רק אם זה תשלום דייר)" : "שיוך לדירה ולחודשים"}</Link>}
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }
