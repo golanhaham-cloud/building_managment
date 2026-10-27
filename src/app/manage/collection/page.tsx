@@ -13,6 +13,7 @@ import {
 } from "@/lib/collection-status";
 import { groupUnallocated, type GroupedItem } from "@/lib/income-classes";
 import GapDecisionForm from "@/components/GapDecisionForm";
+import { peopleByApartment, type DirectoryPerson } from "@/lib/apartment-people";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -61,16 +62,19 @@ export default async function CollectionPage({ searchParams }: { searchParams: S
   }
   const supabase = createClient();
 
-  const [{ data: aptRows }, { data: cov }, { data: wide }, { data: srcs }] = await Promise.all([
+  const [{ data: aptRows }, { data: cov }, { data: wide }, { data: srcs }, { data: dirRows }] = await Promise.all([
     supabase.from("apartments").select("id, floor, apartment_number").eq("building_id", appUser.building_id),
     supabase.rpc("bank_coverage"),
     // הטווח נגזר מהנתונים: קוראים את כל התקופה ואז מסננים (אותה שורה מזינה סיכום ופירוט).
     supabase.rpc("collection_status", { p_from_year: 2020, p_from_month: 1, p_to_year: 2100, p_to_month: 12 }),
     supabase.rpc("income_sources"),
+    supabase.rpc("get_resident_directory"), // אותו מקור כמו מסך הדירות
   ]);
   const apts = [...(aptRows ?? [])].sort((a: any, b: any) => Number(a.apartment_number) - Number(b.apartment_number));
   const aptNo = new Map<string, string>(apts.map((a: any) => [a.id, String(a.apartment_number)]));
   const rows = (wide ?? []) as StatusRow[];
+  const who = peopleByApartment((dirRows ?? []) as DirectoryPerson[]);
+  const namesOf = (id: string) => (who.get(id) ?? []).join(", ");
   const range = monthRange(rows);
   const aptFilter = apts.some((a: any) => a.id === searchParams.apt) ? searchParams.apt! : null;
   const showAll = searchParams.all === "1";
@@ -223,7 +227,7 @@ export default async function CollectionPage({ searchParams }: { searchParams: S
             <h2 className="font-bold">חובות מאומתים</h2>
             {verifiedGroups.length === 0 ? <p className="text-sm text-gray-500">לא תועדו חובות מאומתים בתקופה זו.</p> : (
               <ul className="divide-y divide-gray-100 text-sm">
-                {verifiedGroups.map((g) => <li key={g.apartment_id} className="py-2 flex justify-between"><span>דירה {aptNo.get(g.apartment_id)}</span><b className="text-red-700">{money(g.totals.verifiedAg)}</b></li>)}
+                {verifiedGroups.map((g) => <li key={g.apartment_id} className="py-2 flex justify-between gap-2"><span className="min-w-0 break-words">דירה {aptNo.get(g.apartment_id)}{namesOf(g.apartment_id) && <span className="text-gray-600"> · {namesOf(g.apartment_id)}</span>}</span><b className="text-red-700 whitespace-nowrap">{money(g.totals.verifiedAg)}</b></li>)}
                 <li className="py-2 flex justify-between font-bold"><span>סך הכול</span><span>{money(overall.verifiedAg)}</span></li>
               </ul>
             )}
@@ -234,7 +238,7 @@ export default async function CollectionPage({ searchParams }: { searchParams: S
             <p className="text-xs text-gray-600">אין להסיק מהם חוב. ייתכן שתשלום נרשם בחודש אחר, טרם שויך או הוסכם לגביו משהו.</p>
             {clarifyGroups.length === 0 ? <p className="text-sm text-gray-500">אין פערים לבירור בתקופה זו.</p> : (
               <ul className="divide-y divide-gray-100 text-sm">
-                {clarifyGroups.map((g) => <li key={g.apartment_id} className="py-2 flex justify-between"><span>דירה {aptNo.get(g.apartment_id)} · {(() => { const n = g.months.filter((m) => m.clarifyAg > 0).length; return n === 1 ? "חודש אחד" : `${n} חודשים`; })()}</span><b className="text-amber-800">{money(g.totals.clarifyAg)}</b></li>)}
+                {clarifyGroups.map((g) => <li key={g.apartment_id} className="py-2 flex justify-between gap-2"><span className="min-w-0 break-words">דירה {aptNo.get(g.apartment_id)}{namesOf(g.apartment_id) && <span className="text-gray-600"> · {namesOf(g.apartment_id)}</span>} · {(() => { const n = g.months.filter((m) => m.clarifyAg > 0).length; return n === 1 ? "חודש אחד" : `${n} חודשים`; })()}</span><b className="text-amber-800 whitespace-nowrap">{money(g.totals.clarifyAg)}</b></li>)}
                 <li className="py-2 flex justify-between font-bold"><span>סך הכול</span><span>{money(overall.clarifyAg)}</span></li>
               </ul>
             )}
@@ -248,7 +252,7 @@ export default async function CollectionPage({ searchParams }: { searchParams: S
               return (
                 <details key={g.apartment_id} className="card" data-apt={aptNo.get(g.apartment_id)}>
                   <summary className="cursor-pointer min-h-[44px] flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-                    <span className="font-bold">דירה {aptNo.get(g.apartment_id)}</span>
+                    <span className="font-bold min-w-0 break-words" data-apt-title="">דירה {aptNo.get(g.apartment_id)}{namesOf(g.apartment_id) && <span className="font-normal text-gray-700"> · {namesOf(g.apartment_id)}</span>}</span>
                     <span className="text-xs text-gray-600">לבירור <b className="text-amber-800">{money(t.clarifyAg)}</b>{t.verifiedAg > 0 && <> · חוב מאומת <b className="text-red-700">{money(t.verifiedAg)}</b></>}</span>
                   </summary>
                   <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-sm mt-2">
