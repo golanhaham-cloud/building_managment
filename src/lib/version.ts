@@ -3,7 +3,7 @@
 // (3) אותו מספר גרסה ב-package.json. הבדיקה tests/version.test.ts נכשלת אם משהו לא מסונכרן.
 // מספור: MAJOR.MINOR.PATCH — MINOR לתכונה חדשה/שינוי נראה לעין, PATCH לתיקון קטן, MAJOR לשינוי מהותי.
 
-export const APP_VERSION = "1.23.0";
+export const APP_VERSION = "1.23.1";
 
 export type ChangeEntry = {
   version: string;
@@ -14,6 +14,16 @@ export type ChangeEntry = {
 };
 
 export const CHANGELOG: ChangeEntry[] = [
+  {
+    version: "1.23.1",
+    date: "2026-10-26",
+    title: "דיירים רואים את החיוב הסופי לחודש",
+    changes: [
+      "בעמוד הראשי ובתשלומי ועד, דיירים רואים \"חיוב לחודש\" הכולל התאמות (בסיס + חיובים נוספים − זיכויים), כמו הוועד. פירוט ההתאמות, הסכומים והסיבות נשאר לוועד בלבד.",
+      "אין שינוי בתשלומים, הכנסות, חיובים, התאמות או הרשאות כתיבה.",
+    ],
+    note: "מיגרציה: resident_net_charge_20261030 (שינוי הפונקציה month_fee_overview: לדייר מוחזר החיוב הסופי, ופירוט ההתאמות נשאר null). הבסיס הגולמי של monthly_payments נשאר קריא לדיירים כמו קודם.",
+  },
   {
     version: "1.23.0",
     date: "2026-10-26",

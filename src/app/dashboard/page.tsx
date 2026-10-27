@@ -171,10 +171,9 @@ export default async function DashboardPage() {
         <div className="big-number">{paidCount}/{totalApts}</div>
         <div className="text-xs text-gray-500">דירות שנרשם להן תשלום מלא</div>
         <div className="text-sm mt-2 space-y-0.5">
-          <div>{isAdmin ? "סך חיובים לחודש" : "סך חיובי בסיס (לפני התאמות)"}: <b>{ils(chargesTotal)}</b></div>
+          <div>סך חיובים לחודש: <b>{ils(chargesTotal)}</b></div>
           <div>סך ששולם: <b>{ils(recordedTotal)}</b></div>
         </div>
-        {!isAdmin && <div className="text-xs text-gray-500 mt-1">החיוב בפועל כולל התאמות (חיובים נוספים וזיכויים) שנרשמו לדירות; הן מוצגות לוועד בלבד, והסטטוס מחושב לפי החיוב המעודכן.</div>}
         {!reviewed && <div className="text-xs text-amber-700 mt-1">הרישום חלקי ואינו בהכרח משקף את החוב בפועל</div>}
       </div>
 
@@ -210,7 +209,7 @@ export default async function DashboardPage() {
                   <span>
                     {st.label}
                     <span className="block text-xs text-gray-500">שולם: {ils(p.paid)}</span>
-                    <span className="block text-xs text-gray-500">{isAdmin ? "חיוב לחודש" : "חיוב בסיס (לפני התאמות)"}: {ils(p.due)}</span>
+                    <span className="block text-xs text-gray-500">חיוב לחודש: {ils(p.due)}</span>
                   </span>
                   <span className={`inline-block w-2.5 h-2.5 rounded-full shrink-0 ${DOT[st.dot]}`} title={st.label} />
                 </span>
