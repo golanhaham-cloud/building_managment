@@ -11,7 +11,7 @@ import {
   coverageSummary, decisionRoom, fromAg, groupByApartment, monthRange, overallTotals, resolvePeriod, ymKey,
   type MonthStatus, type StatusRow, type Totals,
 } from "@/lib/collection-status";
-import { groupUnallocated, groupsTotalAg, type GroupedItem } from "@/lib/income-classes";
+import { groupUnallocated, type GroupedItem } from "@/lib/income-classes";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -140,7 +140,6 @@ export default async function CollectionPage({ searchParams }: { searchParams: S
       category_name: metaTx.get(s.id)?.categories?.name ?? null, apartment_id: metaTx.get(s.id)?.source_apartment_id ?? null,
     })),
   );
-  const allUnallocatedAg = groupsTotalAg(grouped);
 
   const [doneCode, doneKind] = String(searchParams.done ?? "").split(".");
   const kindLabel = doneKind === "reduction" ? "הפחתה שאושרה" : "חוב מאומת";
@@ -270,13 +269,12 @@ export default async function CollectionPage({ searchParams }: { searchParams: S
         </>
       )}
 
-      <section className="space-y-3" aria-label="כספים שהתקבלו וטרם שויכו">
-        <h2 className="font-bold">כספים שהתקבלו וטרם שויכו</h2>
-        <p className="text-xs text-gray-600">הכנסות שנרשמו בכספים ועדיין יש בהן יתרה שלא שויכה. כולן כבר נספרות כהכנסה בקופה, אינן מקוזזות אוטומטית מחוב של דירה ואינן נרשמות מחדש. החלוקה לקבוצות לתצוגה בלבד ואינה משנה רישום: כל יתרה מופיעה בקבוצה אחת. שיוך חלקי: מוצגת רק היתרה שלא שויכה.</p>
-        <p className="text-sm" data-total="all">סך הכול יתרות שטרם שויכו: <b>{money(allUnallocatedAg)}</b> <span className="text-xs text-gray-500">= {money(grouped.resident.totalAg)} תקבולי דיירים + {money(grouped.livna4_refund.totalAg)} החזרי ליבנה 4 + {money(grouped.needs_review.totalAg)} לבירור סיווג</span></p>
+      <section className="space-y-3" aria-label="תקבולים והחזרים">
+        <h2 className="font-bold">תקבולים והחזרים</h2>
+        <p className="text-xs text-gray-600">כל התקבולים כבר נספרים כהכנסה בקופה ואינם מקוזזים אוטומטית מחוב של דירה. תקבולי דיירים עשויים לדרוש שיוך לדירה ולחודשים; בשיוך חלקי מוצגת רק היתרה שלא שויכה. החזרי ליבנה 4 הם הכנסה של הבניין ואינם דורשים שיוך לדירה. החלוקה לכרטיסים לתצוגה בלבד, וכל תקבול מופיע בכרטיס אחד.</p>
 
         <IncomeGroupCard id="resident" title="תקבולי דיירים שטרם שויכו" note="יתרות תשלומי דיירים שממתינות לבירור או לשיוך. אין לשייך לחודש בלי אישור." group={grouped.resident} empty="אין תקבולי דיירים שטרם שויכו." mode="allocate" />
-        <IncomeGroupCard id="refunds" title="החזרים מליבנה 4" note="החזרי חשמל, משאבות והוצאות משותפות מוועד בית ליבנה 4. הם נשארים הכנסה בקופת הבניין, אינם תשלום דייר, ואין לשייכם לדירה או לקזזם מפערי דירות." group={grouped.livna4_refund} empty="אין החזרים מליבנה 4." mode="refund" />
+        <IncomeGroupCard id="refunds" title="החזרים מליבנה 4" note="החזרי חשמל, משאבות והוצאות משותפות מוועד בית ליבנה 4. הכנסה של הבניין: אינם דורשים שיוך לדירה, אינם תשלום דייר ואינם מקוזזים מפערי דירות." group={grouped.livna4_refund} empty="אין החזרים מליבנה 4." mode="refund" />
         <IncomeGroupCard id="review" title="תקבולים שסיווגם דורש בירור" note="לא ניתן לסווג בביטחון לפי המקור והתיאור. אינם נחשבים אוטומטית לתשלום דייר או להחזר." group={grouped.needs_review} empty="אין תקבולים שסיווגם דורש בירור." mode="review" />
       </section>
     </div>

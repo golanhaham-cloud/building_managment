@@ -50,5 +50,3 @@ export function groupUnallocated(sources: UnallocatedSource[]): Grouped {
   for (const g of Object.values(out)) g.items.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
   return out;
 }
-
-export const groupsTotalAg = (g: Grouped) => g.resident.totalAg + g.livna4_refund.totalAg + g.needs_review.totalAg;

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { classifySource, groupUnallocated, groupsTotalAg, type UnallocatedSource } from "../src/lib/income-classes";
+import { classifySource, groupUnallocated, type UnallocatedSource } from "../src/lib/income-classes";
 
 let n = 0;
 const S = (description: string, amount: number, over: Partial<UnallocatedSource> = {}): UnallocatedSource => ({ id: `t${++n}`, date: "2026-01-01", amount, allocated: 0, available: amount, description, ...over });
@@ -43,7 +43,7 @@ assert.equal(g.resident.totalAg, 43500);
 assert.equal(g.livna4_refund.totalAg, 164146);
 assert.equal(g.needs_review.totalAg, 7770);
 assert.deepEqual(g.resident.items.map((i) => i.availableAg), [21000, 22500]); // ממוין מהחדש לישן, יתרה בלבד
-assert.equal(groupsTotalAg(g), list.reduce((s, x) => s + Math.round(Number(x.available) * 100), 0));
+assert.equal(g.resident.totalAg + g.livna4_refund.totalAg + g.needs_review.totalAg, list.reduce((s, x) => s + Math.round(Number(x.available) * 100), 0)); // כל יתרה בקבוצה אחת, בלי סכום משותף בתצוגה
 const ids = Object.values(g).flatMap((x) => x.items.map((i) => i.id));
 assert.equal(new Set(ids).size, ids.length); // בלי כפילות
 assert.equal(ids.length, 5); // המקור ששויך במלואו אינו מופיע
