@@ -4,38 +4,20 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSyncExternalStore } from "react";
 import { getServerSnapshot, getSnapshot, subscribe } from "@/lib/nav-store";
+import { TABS, activeTab } from "@/lib/nav";
 import type { UserRole } from "@/lib/types";
 
-const items = [
-  { href: "/dashboard", label: "ראשי", icon: "🏠" },
-  { href: "/finances", label: "כספים", icon: "💰" },
-  { href: "/forecast", label: "תחזית", icon: "📈" },
-  { href: "/apartments", label: "דיירים", icon: "🏢" },
-  { href: "/requests", label: "תקלות", icon: "🔧" },
-  { href: "/projects", label: "תוכניות", icon: "📋" },
-  { href: "/announcements", label: "הודעות", icon: "📢" },
-  { href: "/account", label: "חשבון", icon: "👤" },
-];
-
-const adminItems = [
-  { href: "/dashboard", label: "ראשי", icon: "🏠" },
-  { href: "/finances", label: "כספים", icon: "💰" },
-  { href: "/forecast", label: "תחזית", icon: "📈" },
-  { href: "/apartments", label: "דיירים", icon: "🏢" },
-  { href: "/requests", label: "תקלות", icon: "🔧" },
-  { href: "/manage", label: "ניהול", icon: "⚙️" },
-];
-
-export default function BottomNav({ role }: { role: UserRole }) {
+// אותם חמישה פריטים לדייר ולוועד. התפקיד אינו משנה את הניווט; ההרשאות נאכפות בעמודים עצמם.
+export default function BottomNav({ role: _role }: { role: UserRole }) {
   const pathname = usePathname();
   const nav = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
-  const list = role === "admin" ? adminItems : items;
+  const current = activeTab(pathname);
 
   return (
     <nav className="fixed bottom-0 inset-x-0 bg-white border-t border-gray-200 z-20">
-      <div className={`mx-auto max-w-3xl grid ${role === "admin" ? "grid-cols-6" : "grid-cols-8"} text-[11px] sm:text-xs`}>
-        {list.map((item) => {
-          const active = pathname.startsWith(item.href);
+      <div className={`mx-auto max-w-3xl grid grid-cols-5 text-xs`}>
+        {TABS.map((item) => {
+          const active = current === item.id;
           const pending = !!nav.key && (nav.key === item.href || nav.key.startsWith(item.href + "/") || nav.key.startsWith(item.href + "?"));
           return (
             <Link

@@ -20,7 +20,7 @@ const STATUS_LABELS: Record<RequestStatus, string> = {
 
 const STATUS_OPTIONS = Object.keys(STATUS_LABELS) as RequestStatus[];
 
-export default async function RequestsPage({ searchParams }: { searchParams: { status?: string; urgency?: string } }) {
+export default async function RequestsPage({ searchParams }: { searchParams: { status?: string; urgency?: string; new?: string } }) {
   const supabase = createClient();
   const appUser = await getCurrentAppUser();
   const isAdmin = appUser?.role === "admin";
@@ -43,7 +43,7 @@ export default async function RequestsPage({ searchParams }: { searchParams: { s
     <div className="p-4 space-y-4">
       <h1 className="text-xl font-extrabold">בקשות ותקלות</h1>
 
-      <details className="card">
+      <details className="card" open={searchParams.new === "1" || undefined}>
         <summary className="font-semibold cursor-pointer min-h-[44px] flex items-center">+ פתיחת בקשה חדשה</summary>
         <NewRequestForm buildingId={appUser?.building_id ?? ""} />
       </details>

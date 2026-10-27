@@ -64,9 +64,10 @@ export default async function FinancesPage() {
     <div className="p-4 space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-extrabold">כספי הבניין</h1>
-        <Link href="/payments" className="inline-flex items-center min-h-[44px] text-sm text-brand-700 font-semibold">
-          תשלומי ועד ←
-        </Link>
+        <div className="flex items-center gap-4">
+          <Link href="/forecast" className="inline-flex items-center min-h-[44px] text-sm text-brand-700 font-semibold">תחזית ←</Link>
+          <Link href="/payments" className="inline-flex items-center min-h-[44px] text-sm text-brand-700 font-semibold">תשלומי ועד ←</Link>
+        </div>
       </div>
       <div className="card">
         <div className="text-sm text-gray-500">💰 יתרת קופה מחושבת</div>
