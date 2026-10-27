@@ -12,6 +12,7 @@ import {
   type MonthStatus, type StatusRow, type Totals,
 } from "@/lib/collection-status";
 import { groupUnallocated, type GroupedItem } from "@/lib/income-classes";
+import GapDecisionForm from "@/components/GapDecisionForm";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -341,24 +342,9 @@ function MonthBlock({ m, apt, allocs, direct, decs, log, names, filters }: {
         {(m.shortfallAg > 0 || red || ver) && (
           <details className="border-t border-gray-100 pt-1">
             <summary className="text-xs text-brand-700 cursor-pointer min-h-[44px] flex items-center">תיעוד או עדכון החלטת ועד</summary>
-            <ActionForm action={saveGapDecision} keepOnSuccess className="space-y-2 mt-1">
-              <input type="hidden" name="apartment_id" value={m.apartment_id} />
-              <input type="hidden" name="year" value={m.year} />
-              <input type="hidden" name="month" value={m.month} />
-              {(["apt", "from", "to", "all"] as const).map((k) => <input key={k} type="hidden" name={`f_${k}`} value={filters[k]} />)}
-              <p className="text-xs text-gray-600">ברירת המחדל לכל פער היא ״לבירור״. תיעוד החלטה אינו תשלום, אינו יוצר הכנסה ואינו משנה חיובים או תשלומים. אם כבר קיימת החלטה מאותו סוג, היא תתעדכן והשינוי יישמר ביומן. פער פתוח לדירה {apt}: {money(m.shortfallAg)}.</p>
-              <div><label className={lbl}>סוג ההחלטה</label>
-                <select name="kind" className={sel} defaultValue={red && !ver ? "verified_debt" : "reduction"}>
-                  <option value="reduction">הפחתה שאושרה (עד {money(decisionRoom(m, "reduction"))})</option>
-                  <option value="verified_debt">חוב מאומת (עד {money(decisionRoom(m, "verified_debt"))})</option>
-                </select></div>
-              <div className="grid grid-cols-2 gap-2">
-                <div><label className={lbl}>סכום (₪)</label><input name="amount" aria-label="סכום ההחלטה" inputMode="decimal" className={inp} required placeholder="0.00" /></div>
-                <div><label className={lbl}>תאריך הדיווח (אם ידוע)</label><input name="reported_on" aria-label="תאריך הדיווח" type="date" className={inp} /></div>
-              </div>
-              <input name="reason" aria-label="סיבת ההחלטה" className={inp} placeholder="סיבה / אסמכתה (חובה)" required minLength={3} maxLength={500} />
-              <SubmitButton confirmText="לשמור את ההחלטה? היא אינה תשלום ואינה משנה את הכספים.">שמור החלטה</SubmitButton>
-            </ActionForm>
+            <GapDecisionForm action={saveGapDecision} apartmentId={m.apartment_id} year={m.year} month={m.month} filters={filters} apt={apt}
+              shortfallText={money(m.shortfallAg)} reductionRoom={money(decisionRoom(m, "reduction"))} verifiedRoom={money(decisionRoom(m, "verified_debt"))}
+              defaultKind={red && !ver ? "verified_debt" : "reduction"} />
           </details>
         )}
 

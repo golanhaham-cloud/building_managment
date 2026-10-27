@@ -21,6 +21,8 @@ async function run(fd: FormData, fn: () => Promise<string>): Promise<State> {
     code = await fn();
     revalidatePath("/manage/collection");
   } catch (e) {
+    // נרשם ביומן השרת (Vercel runtime logs) כדי שאפשר יהיה לאתר את הגורם בכשל. ההודעה למשתמש לא משתנה.
+    console.error("[collection-action] failed:", e instanceof Error ? e.message : e);
     return { ok: false, message: friendlyError(e) };
   }
   const keep = new URLSearchParams();

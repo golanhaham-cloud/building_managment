@@ -1,0 +1,16 @@
+import assert from "node:assert/strict";
+import { validateGapForm } from "../src/lib/gap-form";
+assert.deepEqual(validateGapForm({ amount: "", reason: "" }), { amount: "יש להזין סכום", reason: "יש להזין סיבה או אסמכתה" });
+assert.deepEqual(validateGapForm({ amount: "  ", reason: "   " }), { amount: "יש להזין סכום", reason: "יש להזין סיבה או אסמכתה" });
+assert.equal(validateGapForm({ amount: "40", reason: "" }).amount, undefined);
+assert.equal(validateGapForm({ amount: "40", reason: "" }).reason, "יש להזין סיבה או אסמכתה");
+assert.equal(validateGapForm({ amount: "", reason: "אושר" }).amount, "יש להזין סכום");
+assert.ok(validateGapForm({ amount: "0", reason: "אושר" }).amount);
+assert.ok(validateGapForm({ amount: "-5", reason: "אושר" }).amount);
+assert.ok(validateGapForm({ amount: "12.345", reason: "אושר" }).amount);
+assert.ok(validateGapForm({ amount: "abc", reason: "אושר" }).amount);
+assert.ok(validateGapForm({ amount: "40", reason: "אב" }).reason);
+assert.deepEqual(validateGapForm({ amount: "40", reason: "אושר בישיבה" }), {});
+assert.deepEqual(validateGapForm({ amount: "40.5", reason: "אסמכתה 123" }), {});
+assert.ok(validateGapForm({ amount: "40", reason: "א".repeat(501) }).reason);
+console.log("gap-form tests passed");
