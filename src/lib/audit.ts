@@ -10,14 +10,14 @@ export const FIELD_LABELS: Record<string, string> = {
   amount_paid: "שולם", amount_due: "חיוב", status: "סטטוס", effective_from: "תחילת תוקף", scope: "היקף",
   reason: "סיבה", role: "תפקיד", title: "כותרת", body: "תוכן", name: "שם", note: "הערה", is_important: "חשוב",
   estimated_cost: "עלות משוערת", funded_so_far: "מומן עד כה", target_date: "תאריך יעד", monthly_cost: "עלות חודשית",
-  urgency: "דחיפות", assignee: "אחראי", due_date: "תאריך יעד", doc_date: "תאריך מסמך", file_name: "שם קובץ", removed_at: "הוסר בתאריך", deleted_at: "נמחק בתאריך", deleted_by: "נמחק על ידי", is_complete: "הושלם", fee_year: "שנת ועד", fee_month: "חודש ועד", year: "שנה", month: "חודש", purpose: "מטרה מיוחדת", apartment_basis: "בסיס זהות הדירה", months_basis: "בסיס חודשי הכיסוי", basis_note: "הערת בסיס", start_date: "תאריך תחילת רישום",
+  urgency: "דחיפות", assignee: "אחראי", due_date: "תאריך יעד", doc_date: "תאריך מסמך", file_name: "שם קובץ", removed_at: "הוסר בתאריך", deleted_at: "נמחק בתאריך", deleted_by: "נמחק על ידי", is_complete: "הושלם", fee_year: "שנת ועד", fee_month: "חודש ועד", year: "שנה", month: "חודש", purpose: "מטרה מיוחדת", apartment_basis: "בסיס זהות הדירה", months_basis: "בסיס חודשי הכיסוי", basis_note: "הערת בסיס", start_date: "תאריך תחילת רישום", kind: "סוג החלטה", reported_on: "תאריך דיווח האישור", covered_from: "כיסוי מתאריך", covered_until: "כיסוי עד תאריך", row_count: "מספר שורות",
 };
 
 export const ENTITY_LABELS: Record<string, string> = {
   apartments: "דירה", residents: "דייר", transactions: "תנועה כספית", monthly_payments: "חיוב ועד",
   fee_tariffs: "תעריף", fee_tariff_apartments: "דירות בתעריף", fee_adjustments: "זיכוי/חיוב נוסף",
   suppliers: "ספק", announcements: "הודעה", projects: "תוכנית", requests: "פנייה", documents: "מסמך",
-  internal_notes: "הערה פנימית", committee_tasks: "משימת ועד", committee_documents: "מסמך ועד", request_attachments: "קובץ בפנייה", app_users: "הרשאות משתמש", join_requests: "בקשת הצטרפות", forecast_items: "סעיף תחזית", forecast_settings: "הנחות תחזית", forecast_scenarios: "תרחיש תחזית", forecast_one_offs: "הוצאה צפויה מיוחדת", payment_allocations: "שיוך הכנסה לדירה/חודש", opening_balance: "יתרת פתיחה", categories: "קטגוריה",
+  internal_notes: "הערה פנימית", committee_tasks: "משימת ועד", committee_documents: "מסמך ועד", request_attachments: "קובץ בפנייה", app_users: "הרשאות משתמש", join_requests: "בקשת הצטרפות", forecast_items: "סעיף תחזית", forecast_settings: "הנחות תחזית", forecast_scenarios: "תרחיש תחזית", forecast_one_offs: "הוצאה צפויה מיוחדת", payment_allocations: "שיוך הכנסה לדירה/חודש", opening_balance: "יתרת פתיחה", fee_gap_decisions: "החלטת ועד על פער גבייה", bank_import_batches: "כיסוי ייבוא בנק", categories: "קטגוריה",
 };
 
 const SKIP = new Set(["row_version", "updated_at", "created_at", "idempotency_key"]);

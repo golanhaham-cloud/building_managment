@@ -208,8 +208,16 @@ export async function importTransactions(rows: ImportRowInput[]) {
     inserted++;
   }
 
+  // תיעוד כיסוי הייבוא (טווח תאריכי התנועות בקובץ), נפרד ממועד הייבוא ומרשומות ידניות. כשל בתיעוד אינו מכשיל את הייבוא.
+  try {
+    await supabase.rpc("record_bank_import", { p_from: dates[0], p_until: dates[dates.length - 1], p_rows: valid.length });
+  } catch {
+    /* non-fatal */
+  }
+
   revalidatePath("/finances");
   revalidatePath("/payments");
   revalidatePath("/dashboard");
+  revalidatePath("/manage/collection");
   return { inserted, skipped: valid.length - inserted, unlinked };
 }

@@ -78,6 +78,11 @@ export default async function PaymentsPage({ searchParams }: { searchParams: { y
         )}
       </div>
       {isAdmin && (
+        <Link href="/manage/collection" className="card flex items-center justify-between min-h-[44px] text-sm font-semibold text-brand-700">
+          <span>מצב גבייה וחובות (פערים והחלטות ועד)</span><span aria-hidden="true">←</span>
+        </Link>
+      )}
+      {isAdmin && (
         <Link href={`/payments/allocate?year=${year}&month=${month}`} className="card flex items-center justify-between min-h-[44px] text-sm font-semibold text-brand-700">
           <span>שיוך הכנסה קיימת לדירה ולחודשים</span><span aria-hidden="true">←</span>
         </Link>

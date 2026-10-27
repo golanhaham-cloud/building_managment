@@ -8,6 +8,7 @@ const groups: Group[] = [
     title: "כספים",
     links: [
       { href: "/manage/fees", icon: "🧾", title: "תעריפים, חיובים וזיכויים", desc: "תעריף ועד לפי חודש, חיוב חודשי, זיכויים" },
+      { href: "/manage/collection", icon: "📋", title: "מצב גבייה וחובות", desc: "פערים, הפחתות וחובות מאומתים לפי דירה וחודש" },
       { href: "/payments", icon: "💳", title: "תשלומי ועד", desc: "רישום תשלומים שהתקבלו" },
       { href: "/finances", icon: "💰", title: "הכנסות והוצאות", desc: "הוספה, תיקון וביטול עם סיבה" },
       { href: "/forecast", icon: "📈", title: "הוצאות קבועות ותחזית", desc: "אומדן חודשי, הנחות ותרחיש (לא יתרת בנק)" },
