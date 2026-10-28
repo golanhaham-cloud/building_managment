@@ -22,7 +22,7 @@ export default function JoinStatus({ status, email, requestedAt }: { status: "pe
 
   const pending = status === "pending";
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-6">
+    <div className="min-h-[calc(100vh-4.5rem)] flex flex-col items-center justify-center px-6">
       <div className="text-4xl mb-2" aria-hidden="true">{pending ? "⏳" : "🚫"}</div>
       <h1 className="text-xl font-extrabold mb-1 text-center">
         {pending ? "הבקשה נשלחה לוועד וממתינה לאישור" : "הבקשה לא אושרה"}

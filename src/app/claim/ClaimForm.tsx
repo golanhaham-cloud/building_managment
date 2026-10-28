@@ -45,7 +45,7 @@ export default function ClaimForm() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-6">
+    <div className="min-h-[calc(100vh-4.5rem)] flex flex-col items-center justify-center px-6">
       <div className="text-4xl mb-2">🔑</div>
       <h1 className="text-xl font-extrabold mb-1">חיבור לבניין</h1>
       <p className="text-gray-500 mb-6 text-center text-sm">

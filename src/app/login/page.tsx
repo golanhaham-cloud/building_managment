@@ -107,7 +107,7 @@ function LoginForm() {
   const title = mode === "login" ? "כניסה" : mode === "signup" ? "הרשמה (פעם ראשונה)" : "כניסה בקישור למייל";
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-6">
+    <div className="min-h-[calc(100vh-4.5rem)] flex flex-col items-center justify-center px-6">
       <div className="text-4xl mb-2">🏢</div>
       <h1 className="text-2xl font-extrabold mb-1">ליבנה 6</h1>
       <p className="text-gray-500 mb-6">מערכת ניהול ושקיפות הבניין</p>

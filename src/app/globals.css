@@ -61,3 +61,7 @@ a.card:active, nav a:active { filter: brightness(0.95); }
 .splash[data-state="failed"] .splash-spin { display: none; }
 .splash-spin { animation: nav-spin 0.9s linear infinite; }
 @media (prefers-reduced-motion: reduce) { .splash-spin { animation: none; } }
+
+/* קרדיט האתר: מקום לסרגל הניווט התחתון הקבוע. בלי סרגל (כניסה/הרשמה) ריווח קטן; דפדפן בלי :has משאיר את הריווח הגדול (בטוח). */
+.site-credit { padding-bottom: 6.5rem; }
+body:not(:has(nav.fixed)) .site-credit { padding-bottom: 1.5rem; }

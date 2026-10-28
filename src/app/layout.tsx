@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import AppNav from "@/components/AppNav";
 import NavProgress from "@/components/NavProgress";
 import Splash from "@/components/Splash";
+import SiteCredit from "@/components/SiteCredit";
 
 export const metadata: Metadata = {
   title: "ליבנה 6 - ניהול הבניין",
@@ -38,7 +39,10 @@ export default function RootLayout({
         <Suspense fallback={null}>
           <NavProgress />
         </Suspense>
-        <main className="mx-auto max-w-3xl min-h-screen pb-24">{children}</main>
+        <div className="min-h-screen flex flex-col">
+          <main className="mx-auto max-w-3xl w-full flex-1">{children}</main>
+          <SiteCredit />
+        </div>
         <Suspense fallback={null}>
           <AppNav />
         </Suspense>
