@@ -8,7 +8,7 @@ import AuditList from "@/components/AuditList";
 import DoneBanner from "@/components/DoneBanner";
 import { inp, lbl, ils, monthName } from "@/components/ui";
 import {
-  coverageSummary, decisionRoom, fromAg, groupByApartment, monthRange, overallTotals, resolvePeriod, ymKey,
+  coverageSummary, decisionRoom, excessItems, fromAg, hasVisibleDecisionState, groupByApartment, monthRange, overallTotals, resolvePeriod, ymKey,
   type MonthStatus, type StatusRow, type Totals,
 } from "@/lib/collection-status";
 import { groupUnallocated, type GroupedItem } from "@/lib/income-classes";
@@ -18,7 +18,8 @@ import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
-type SP = { apt?: string; from?: string; to?: string; all?: string; done?: string };
+type SP = { apt?: string; from?: string; to?: string; all?: string; done?: string; focus?: string };
+type ExcessLink = { key: string; label: string; amount: string; href: string; note: string };
 const sel = "w-full rounded-lg border border-gray-300 px-2 py-2 text-sm bg-white min-h-[44px]";
 const money = (ag: number) => ils(fromAg(ag));
 const dateHe = (d: string | null | undefined) => (d ? new Date(d).toLocaleDateString("he-IL") : "—");
@@ -33,7 +34,7 @@ function Stat({ label, value, tone, hint }: { label: string; value: string; tone
   );
 }
 
-function Summary({ t, title }: { t: Totals; title?: string }) {
+function Summary({ t, title, excess }: { t: Totals; title?: string; excess?: ExcessLink[] }) {
   return (
     <div className="space-y-2">
       {title && <h2 className="font-bold">{title}</h2>}
@@ -45,7 +46,21 @@ function Summary({ t, title }: { t: Totals; title?: string }) {
         <div className="col-span-2"><Stat label="פער לבירור" value={money(t.clarifyAg)} tone="text-amber-800" hint="אינו חוב מאומת עד החלטת ועד" /></div>
       </div>
       {t.surplusAg > 0 && <p className="text-xs text-gray-600">תשלומים מעל החיוב בחודשים מסוימים: {money(t.surplusAg)} (מוצג בנפרד, אינו מקוזז מחודשים אחרים).</p>}
-      {t.excessAg > 0 && <p className="text-xs text-red-700">יש החלטות בסכום של {money(t.excessAg)} שחורג מהפער הפתוח. הן אינן נספרות.</p>}
+      {t.closedMonths > 0 && (
+        <p className="text-xs text-gray-700" data-note="closed-by-payment">
+          החלטות חוב מאומת היסטוריות שנסגרו בתשלום: {money(t.closedVerifiedAg + t.closedReductionAg)} ב־{t.closedMonths === 1 ? "חודש אחד" : `${t.closedMonths} חודשים`}. הן נשארות בהיסטוריית החודש, אינן חוב פתוח ואינן נספרות בסכום החוב המאומת.
+        </p>
+      )}
+      {t.excessAg > 0 && (
+        <div className="rounded-lg bg-red-50 p-2 space-y-1" data-alert="excess" role="note">
+          <p className="text-xs text-red-800">יש החלטות בסכום של {money(t.excessAg)} שסותרות את מצב החודש (חורגות מהפער הפתוח, או שהפער נסגר שלא בתשלום). הן אינן נספרות. החודשים שיצרו את ההתראה:</p>
+          <ul className="text-sm space-y-0.5">
+            {(excess ?? []).map((x) => (
+              <li key={x.key}><Link href={x.href} data-alert-link className="text-red-800 underline inline-flex items-center min-h-[44px]">{x.label}: {x.amount} · {x.note}</Link></li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }
@@ -82,6 +97,25 @@ export default async function CollectionPage({ searchParams }: { searchParams: S
   const groups = period ? groupByApartment(rows, period, aptFilter) : [];
   groups.sort((a, b) => Number(aptNo.get(a.apartment_id)) - Number(aptNo.get(b.apartment_id)));
   const overall = overallTotals(groups);
+  const focusRaw = (searchParams.focus ?? "").split("_");
+  const focusApt = focusRaw[0] || null;
+  const focusYm = focusRaw[1] || null;
+  const excessLinks: ExcessLink[] = excessItems(groups).map((x) => {
+    const apNo = aptNo.get(x.apartment_id) ?? "";
+    const q = new URLSearchParams();
+    if (aptFilter) q.set("apt", aptFilter);
+    if (searchParams.from) q.set("from", searchParams.from);
+    if (searchParams.to) q.set("to", searchParams.to);
+    if (showAll) q.set("all", "1");
+    q.set("focus", `${apNo}_${ymKey(x.year, x.month)}`);
+    return {
+      key: x.key,
+      label: `דירה ${apNo} · ${monthName(x.month)} ${x.year}`,
+      amount: money(x.excessAg),
+      note: x.reason === "gap_closed_otherwise" ? "הפער אפס אך לא נסגר בתשלום מלא" : "מעל הפער הפתוח",
+      href: `/manage/collection?${q.toString()}#m-${apNo}-${ymKey(x.year, x.month)}`,
+    };
+  });
   const verifiedGroups = groups.filter((g) => g.totals.verifiedAg > 0);
   const clarifyGroups = groups.filter((g) => g.totals.clarifyAg > 0);
 
@@ -221,7 +255,7 @@ export default async function CollectionPage({ searchParams }: { searchParams: S
       ) : (
         <>
           <div className="text-xs text-gray-600">תקופה: {monthName(period.from.month)} {period.from.year} – {monthName(period.to.month)} {period.to.year}{aptFilter ? ` · דירה ${aptNo.get(aptFilter)}` : " · כל הדירות"}</div>
-          <Summary t={overall} title="סיכום כללי" />
+          <Summary t={overall} title="סיכום כללי" excess={excessLinks} />
 
           <section className="card space-y-2" aria-label="חובות מאומתים">
             <h2 className="font-bold">חובות מאומתים</h2>
@@ -248,9 +282,11 @@ export default async function CollectionPage({ searchParams }: { searchParams: S
             <h2 className="font-bold">לפי דירה</h2>
             {groups.map((g) => {
               const t = g.totals;
-              const list = showAll ? g.months : g.months.filter((m) => m.shortfallAg > 0 || m.surplusAg > 0 || m.reductionAg > 0 || m.verifiedAg > 0);
+              const isFocusApt = focusApt !== null && focusApt === aptNo.get(g.apartment_id);
+              // חודשים עם התראה או עם החלטה היסטורית שנסגרה בתשלום נשארים גלויים גם בלי "הצג גם חודשים ללא פער".
+              const list = showAll ? g.months : g.months.filter((m) => m.shortfallAg > 0 || m.surplusAg > 0 || m.reductionAg > 0 || m.verifiedAg > 0 || hasVisibleDecisionState(m) || (isFocusApt && ymKey(m.year, m.month) === focusYm));
               return (
-                <details key={g.apartment_id} className="card" data-apt={aptNo.get(g.apartment_id)}>
+                <details key={g.apartment_id} className="card" data-apt={aptNo.get(g.apartment_id)} open={isFocusApt || undefined}>
                   <summary className="cursor-pointer min-h-[44px] flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
                     <span className="font-bold min-w-0 break-words" data-apt-title="">דירה {aptNo.get(g.apartment_id)}{namesOf(g.apartment_id) && <span className="font-normal text-gray-700"> · {namesOf(g.apartment_id)}</span>}</span>
                     <span className="text-xs text-gray-600">לבירור <b className="text-amber-800">{money(t.clarifyAg)}</b>{t.verifiedAg > 0 && <> · חוב מאומת <b className="text-red-700">{money(t.verifiedAg)}</b></>}</span>
@@ -265,7 +301,7 @@ export default async function CollectionPage({ searchParams }: { searchParams: S
                   </dl>
                   <div className="mt-3 space-y-2">
                     {list.length === 0 && <p className="text-sm text-gray-500">אין חודשים עם פער בתקופה זו.</p>}
-                    {list.map((m) => <MonthBlock key={m.key} m={m} apt={aptNo.get(m.apartment_id) ?? ""} allocs={allocBy.get(m.key) ?? []} direct={directBy.get(m.key) ?? []} decs={decBy.get(m.key) ?? []} log={logBy.get(m.key) ?? []} names={names} filters={{ apt: aptFilter ?? "", from: searchParams.from ?? "", to: searchParams.to ?? "", all: showAll ? "1" : "" }} />)}
+                    {list.map((m) => <MonthBlock key={m.key} focus={isFocusApt && ymKey(m.year, m.month) === focusYm} m={m} apt={aptNo.get(m.apartment_id) ?? ""} allocs={allocBy.get(m.key) ?? []} direct={directBy.get(m.key) ?? []} decs={decBy.get(m.key) ?? []} log={logBy.get(m.key) ?? []} names={names} filters={{ apt: aptFilter ?? "", from: searchParams.from ?? "", to: searchParams.to ?? "", all: showAll ? "1" : "" }} />)}
                   </div>
                 </details>
               );
@@ -286,15 +322,16 @@ export default async function CollectionPage({ searchParams }: { searchParams: S
   );
 }
 
-function MonthBlock({ m, apt, allocs, direct, decs, log, names, filters }: {
-  m: MonthStatus; apt: string; allocs: any[]; direct: any[]; decs: any[]; log: AuditEntry[]; names: Map<string, string>;
+function MonthBlock({ focus, m, apt, allocs, direct, decs, log, names, filters }: {
+  focus?: boolean; m: MonthStatus; apt: string; allocs: any[]; direct: any[]; decs: any[]; log: AuditEntry[]; names: Map<string, string>;
   filters: { apt: string; from: string; to: string; all: string };
 }) {
   const red = decs.find((d) => d.kind === "reduction");
   const ver = decs.find((d) => d.kind === "verified_debt");
-  const statusLabel = m.shortfallAg === 0 ? (m.surplusAg > 0 ? "שולם, עם תשלום עודף" : "שולם במלואו") : m.paidAg > 0 ? "תשלום חלקי" : "טרם נרשם תשלום";
+  const baseLabel = m.shortfallAg === 0 ? (m.surplusAg > 0 ? "שולם, עם תשלום עודף" : "שולם במלואו") : m.paidAg > 0 ? "תשלום חלקי" : "טרם נרשם תשלום";
+  const statusLabel = m.closedVerifiedAg > 0 ? `${baseLabel} · חוב מאומת שנסגר בתשלום` : m.closedReductionAg > 0 ? `${baseLabel} · הפחתה שנסגרה בתשלום` : baseLabel;
   return (
-    <details className="rounded-lg border border-gray-200 px-3" data-month={`${m.year}-${m.month}`}>
+    <details id={`m-${apt}-${ymKey(m.year, m.month)}`} open={focus || undefined} className={`rounded-lg border px-3 scroll-mt-4 ${focus ? "border-red-400 ring-1 ring-red-200" : "border-gray-200"}`} data-month={`${m.year}-${m.month}`} data-closed={m.closedByPayment || undefined}>
       <summary className="cursor-pointer min-h-[44px] flex flex-wrap items-center justify-between gap-x-3 text-sm">
         <span className="font-semibold">{monthName(m.month)} {m.year}</span>
         <span className="text-xs text-gray-600">{statusLabel}{m.clarifyAg > 0 && <> · לבירור <b className="text-amber-800">{money(m.clarifyAg)}</b></>}</span>
@@ -314,7 +351,18 @@ function MonthBlock({ m, apt, allocs, direct, decs, log, names, filters }: {
           <dt className="text-gray-500">לבירור</dt><dd className="text-end font-semibold">{money(m.clarifyAg)}</dd>
           {m.surplusAg > 0 && (<><dt className="text-gray-500">תשלום מעל החיוב</dt><dd className="text-end">{money(m.surplusAg)}</dd></>)}
         </dl>
-        {m.excessDecisionAg > 0 && <p className="text-xs text-red-700">החלטות בסכום {money(m.excessDecisionAg)} חורגות מהפער הפתוח ואינן נספרות.</p>}
+        {m.closedVerifiedAg + m.closedReductionAg > 0 && (
+          <p className="text-xs text-gray-700 rounded-lg bg-gray-50 p-2" data-note="closed">
+            {m.closedVerifiedAg > 0 ? `החלטת חוב מאומת בסך ${money(m.closedVerifiedAg)}` : `החלטת הפחתה בסך ${money(m.closedReductionAg)}`} נסגרה בתשלום: שולם {money(m.paidAg)} מתוך חיוב של {money(m.grossAg)}. ההחלטה המקורית נשמרת למטה ובהיסטוריה, אינה חוב פתוח ואינה נספרת בסכום החוב המאומת. אם התשלום יבוטל, החוב יחזור להיות פתוח.
+          </p>
+        )}
+        {m.excessDecisionAg > 0 && (
+          <p className="text-xs text-red-700" data-alert="month-excess">
+            {m.shortfallAg === 0
+              ? `החלטות בסכום ${money(m.excessDecisionAg)} בחודש שהפער בו אפס אך לא נסגר בתשלום מלא על החיוב (ייתכן זיכוי, הפחתה או שינוי חיוב). יש לבדוק את ההחלטה. הסכום אינו נספר.`
+              : `החלטות בסכום ${money(m.excessDecisionAg)} חורגות מהפער הפתוח ואינן נספרות.`}
+          </p>
+        )}
 
         {(direct.length > 0 || allocs.length > 0) && (
           <div>
@@ -331,7 +379,7 @@ function MonthBlock({ m, apt, allocs, direct, decs, log, names, filters }: {
 
         {[red, ver].filter(Boolean).map((d: any) => (
           <div key={d.id} className="rounded-lg bg-gray-50 p-2 space-y-1">
-            <div className="font-semibold">{d.kind === "reduction" ? "הפחתה שאושרה" : "חוב מאומת"}: {ils(Number(d.amount))}</div>
+            <div className="font-semibold">{d.kind === "reduction" ? (m.closedReductionAg > 0 ? "הפחתה שנסגרה בתשלום" : "הפחתה שאושרה") : (m.closedVerifiedAg > 0 ? "חוב מאומת שנסגר בתשלום" : "חוב מאומת")}: {ils(Number(d.amount))}</div>
             <div className="text-xs text-gray-700 break-words">סיבה: {d.reason}</div>
             <div className="text-xs text-gray-500">{d.reported_on ? `דווח ב־${dateHe(d.reported_on)} · ` : ""}תועד ב־{new Date(d.created_at).toLocaleString("he-IL", { dateStyle: "short", timeStyle: "short" })} · {d.created_by ? names.get(d.created_by) ?? "משתמש" : "המערכת, לפי דיווח הוועד"}</div>
             <ActionForm action={voidGapDecision} keepOnSuccess className="space-y-1">

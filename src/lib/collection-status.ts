@@ -41,7 +41,11 @@ export type MonthStatus = {
   verifiedAg: number; // חוב מאומת (מוגבל לפער שנותר אחרי הפחתה)
   clarifyAg: number; // לבירור = פער − הפחתה − חוב מאומת
   surplusAg: number; // תשלום מעל החיוב, אינו מקוזז בין חודשים
-  excessDecisionAg: number; // סכום החלטות שחורג מהפער (לסימון בלבד, אינו נספר)
+  excessDecisionAg: number; // סכום החלטות שסותר את המצב (לסימון בלבד, אינו נספר). אינו כולל החלטות שנסגרו בתשלום.
+  grossAg: number; // חיוב לפני זיכויים = בסיס + חיובים נוספים (מה שהתשלום צריך לכסות)
+  closedByPayment: boolean; // הפער נסגר בתשלומים תקפים בלבד (לא בזיכוי, הפחתה או ביטול חיוב)
+  closedVerifiedAg: number; // החלטת חוב מאומת היסטורית שנסגרה בתשלום (אינה חוב פתוח)
+  closedReductionAg: number; // החלטת הפחתה היסטורית שנסגרה בתשלום
   reductionId: string | null;
   verifiedId: string | null;
 };
@@ -61,6 +65,13 @@ export function monthStatus(r: StatusRow): MonthStatus {
   const reductionAg = Math.min(redIn, shortfallAg);
   const verifiedAg = Math.min(verIn, shortfallAg - reductionAg);
   const clarifyAg = shortfallAg - reductionAg - verifiedAg;
+  // החלטה היסטורית מול חוב פתוח: כשהחיוב (לפני זיכויים) כוסה במלואו בתשלומים תקפים, החלטת החוב נסגרה בתשלום.
+  // פער אפס בלבד אינו מספיק: אם הוא נוצר בגלל זיכוי, הפחתה או שינוי חיוב, ההחלטה נשארת סותרת ומסומנת.
+  // החישוב מבוסס על המצב הנוכחי, ולכן ביטול תשלום מחזיר את ההחלטה להיות חוב פתוח.
+  const grossAg = baseAg + toAg(r.extras_total);
+  const closedByPayment = shortfallAg === 0 && grossAg > 0 && paidAg >= grossAg && redIn + verIn > 0;
+  const closedVerifiedAg = closedByPayment ? Math.min(verIn, grossAg) : 0;
+  const closedReductionAg = closedByPayment ? Math.min(redIn, grossAg - closedVerifiedAg) : 0;
   return {
     key: `${r.apartment_id}|${year}|${month}`,
     apartment_id: r.apartment_id,
@@ -79,7 +90,11 @@ export function monthStatus(r: StatusRow): MonthStatus {
     verifiedAg,
     clarifyAg,
     surplusAg,
-    excessDecisionAg: redIn + verIn - reductionAg - verifiedAg,
+    excessDecisionAg: redIn + verIn - reductionAg - verifiedAg - closedVerifiedAg - closedReductionAg,
+    grossAg,
+    closedByPayment,
+    closedVerifiedAg,
+    closedReductionAg,
     reductionId: r.reduction_id,
     verifiedId: r.verified_id,
   };
@@ -93,11 +108,14 @@ export type Totals = {
   clarifyAg: number;
   surplusAg: number;
   excessAg: number;
+  closedVerifiedAg: number;
+  closedReductionAg: number;
+  closedMonths: number; // חודשים עם החלטה היסטורית שנסגרה בתשלום
   months: number;
   gapMonths: number;
 };
 
-const empty = (): Totals => ({ chargesAg: 0, paidAg: 0, reductionAg: 0, verifiedAg: 0, clarifyAg: 0, surplusAg: 0, excessAg: 0, months: 0, gapMonths: 0 });
+const empty = (): Totals => ({ chargesAg: 0, paidAg: 0, reductionAg: 0, verifiedAg: 0, clarifyAg: 0, surplusAg: 0, excessAg: 0, closedVerifiedAg: 0, closedReductionAg: 0, closedMonths: 0, months: 0, gapMonths: 0 });
 
 // סיכום נגזר תמיד מאותן שורות חודשיות שמוצגות בפירוט, כך שסיכום ופירוט אינם יכולים להיפרד.
 export function sumMonths(list: MonthStatus[]): Totals {
@@ -110,6 +128,9 @@ export function sumMonths(list: MonthStatus[]): Totals {
     t.clarifyAg += m.clarifyAg;
     t.surplusAg += m.surplusAg;
     t.excessAg += m.excessDecisionAg;
+    t.closedVerifiedAg += m.closedVerifiedAg;
+    t.closedReductionAg += m.closedReductionAg;
+    if (m.closedVerifiedAg + m.closedReductionAg > 0) t.closedMonths += 1;
     t.months += 1;
     if (m.shortfallAg > 0) t.gapMonths += 1;
   }
@@ -186,6 +207,22 @@ export function decisionRoom(m: MonthStatus, kind: "reduction" | "verified_debt"
 }
 
 export const hasGap = (m: MonthStatus) => m.shortfallAg > 0;
+
+// חודש שיש בו החלטת ועד שאינה חוב פתוח אך חשוב להישאר גלוי בהיסטוריה / בהתראות (גם כשמסנן "רק חודשים עם פער" פעיל).
+export const hasVisibleDecisionState = (m: MonthStatus) => m.excessDecisionAg > 0 || m.closedVerifiedAg > 0 || m.closedReductionAg > 0;
+
+export type ExcessItem = { apartment_id: string; year: number; month: number; key: string; excessAg: number; reason: "exceeds_gap" | "gap_closed_otherwise" };
+
+// התראות על סתירות אמיתיות בלבד: החלטה שחורגת מהפער הפתוח, או החלטה בחודש שהפער בו אפס שלא בגלל תשלום.
+// החלטה שנסגרה בתשלום אינה כאן. כל פריט מצביע על החודש שיצר אותו (לקישור בתצוגה).
+export function excessItems(groups: AptGroup[]): ExcessItem[] {
+  const out: ExcessItem[] = [];
+  for (const g of groups)
+    for (const m of g.months)
+      if (m.excessDecisionAg > 0)
+        out.push({ apartment_id: m.apartment_id, year: m.year, month: m.month, key: m.key, excessAg: m.excessDecisionAg, reason: m.shortfallAg === 0 ? "gap_closed_otherwise" : "exceeds_gap" });
+  return out;
+}
 
 // ניסוח כיסוי הבנק. תאריך הכיסוי אינו נגזר מתנועה ידנית, ומועד הייבוא נפרד ממנו.
 export function coverageSummary(c: { covered_until: string | null; last_import_at: string | null; after_count: number; after_last_date: string | null } | null) {

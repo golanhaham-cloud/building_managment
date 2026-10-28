@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { monthStatus, sumMonths, groupByApartment, overallTotals, monthRange, resolvePeriod, decisionRoom, coverageSummary, type StatusRow } from "../src/lib/collection-status";
+import { monthStatus, sumMonths, groupByApartment, overallTotals, monthRange, resolvePeriod, decisionRoom, coverageSummary, excessItems, hasVisibleDecisionState, toAg, type StatusRow } from "../src/lib/collection-status";
 
 const row = (o: Partial<StatusRow> & { apartment_id?: string; year?: number; month?: number }): StatusRow => ({
   apartment_id: "a1", year: 2026, month: 10, base_due: 290, adjustments_total: 0, credits_total: 0, extras_total: 0,
@@ -77,3 +77,77 @@ const a6 = [monthStatus(row({ apartment_id: "a6", year: 2025, month: 7, base_due
 const t6 = sumMonths(a6);
 assert.deepEqual([t6.reductionAg, t6.clarifyAg, t6.paidAg, t6.verifiedAg], [14000, 0, 31000, 0]);
 console.log("collection-status tests passed");
+
+// ===== החלטה היסטורית מול חוב פתוח (תיקון סטטוס, תצוגה בלבד) =====
+// A. מקרה דירה 13: אוגוסט 290, ספטמבר 290, אוקטובר 330 (290 + חיוב נוסף 40); תשלום 910 שויך במלואו; החלטות חוב מאומת על אותם סכומים.
+const a13 = [
+  row({ apartment_id: "a13", month: 8, base_due: 290, paid_total: 290, allocated_paid: 290, verified_amount: 290, verified_id: "v8" }),
+  row({ apartment_id: "a13", month: 9, base_due: 290, paid_total: 290, allocated_paid: 290, verified_amount: 290, verified_id: "v9" }),
+  row({ apartment_id: "a13", month: 10, base_due: 290, adjustments_total: 40, extras_total: 40, paid_total: 330, allocated_paid: 330, verified_amount: 330, verified_id: "v10" }),
+];
+// שאר הבניין: חובות מאומתים פתוחים בסך 14,015 ₪ (דירות אחרות)
+const others = [
+  row({ apartment_id: "a1", month: 8, base_due: 20000, paid_total: 0, verified_amount: 8015, verified_id: "o1" }),
+  row({ apartment_id: "a2", month: 9, base_due: 20000, paid_total: 0, verified_amount: 6000, verified_id: "o2" }),
+];
+const p3 = { from: { year: 2026, month: 8 }, to: { year: 2026, month: 10 } };
+let gr = groupByApartment([...a13, ...others], p3);
+const g13 = gr.find((x) => x.apartment_id === "a13")!;
+assert.deepEqual(g13.months.map((x) => [x.shortfallAg, x.verifiedAg, x.clarifyAg, x.excessDecisionAg, x.closedByPayment, x.closedVerifiedAg]),
+  [[0, 0, 0, 0, true, 33000], [0, 0, 0, 0, true, 29000], [0, 0, 0, 0, true, 29000]]);
+assert.equal(g13.totals.verifiedAg, 0); assert.equal(g13.totals.clarifyAg, 0); assert.equal(g13.totals.excessAg, 0);
+assert.equal(g13.totals.closedVerifiedAg, 91000); assert.equal(g13.totals.closedMonths, 3);
+assert.equal(overallTotals(gr).verifiedAg, 1401500, "סך החוב המאומת בבניין נשאר 14,015");
+assert.equal(overallTotals(gr).excessAg, 0); assert.deepEqual(excessItems(gr), []);
+assert.ok(g13.months.every(hasVisibleDecisionState), "החלטה שנסגרה בתשלום נשארת גלויה בהיסטוריה");
+
+// B. תשלום חלקי אחרי החלטה: הפער הפתוח נשאר חוב, והסכום החורג מסומן עם קישור לחודש
+m = monthStatus(row({ base_due: 290, paid_total: 150, verified_amount: 290 }));
+assert.deepEqual([m.shortfallAg, m.verifiedAg, m.excessDecisionAg, m.closedByPayment, m.closedVerifiedAg], [14000, 14000, 15000, false, 0]);
+const exB = excessItems(groupByApartment([row({ base_due: 290, paid_total: 150, verified_amount: 290 })], p3));
+assert.equal(exB.length, 1); assert.equal(exB[0].reason, "exceeds_gap"); assert.equal(exB[0].excessAg, 15000); assert.equal(exB[0].month, 10);
+
+// C. חודש שלא שולם: החלטה היא חוב פתוח מלא, ללא התראה
+m = monthStatus(row({ base_due: 290, paid_total: 0, verified_amount: 290 }));
+assert.deepEqual([m.verifiedAg, m.clarifyAg, m.excessDecisionAg, m.closedVerifiedAg], [29000, 0, 0, 0]);
+
+// D. החלטה שסכומה חורג מהפער: החלק החורג מסומן, והחוב הפתוח מוגבל לפער
+m = monthStatus(row({ base_due: 290, paid_total: 250, verified_amount: 100 }));
+assert.deepEqual([m.shortfallAg, m.verifiedAg, m.excessDecisionAg, m.closedByPayment], [4000, 4000, 6000, false]);
+// החלטה גדולה מהחיוב עצמו גם כשהחיוב שולם במלואו: רק החלק עד החיוב נסגר, היתר נשאר התראה
+m = monthStatus(row({ base_due: 290, paid_total: 290, verified_amount: 500 }));
+assert.deepEqual([m.closedVerifiedAg, m.excessDecisionAg, m.verifiedAg], [29000, 21000, 0]);
+
+// E. סגירת פער באמצעות הפחתה (לא תשלום): נשארת הפחתה, לא "נסגר בתשלום", ללא התראה
+m = monthStatus(row({ base_due: 290, paid_total: 250, reduction_amount: 40 }));
+assert.deepEqual([m.shortfallAg, m.reductionAg, m.clarifyAg, m.closedByPayment, m.closedReductionAg, m.excessDecisionAg], [4000, 4000, 0, false, 0, 0]);
+// פער אפס בגלל זיכוי / ביטול חיוב (לא תשלום): החלטת חוב סותרת, אינה "נסגרה בתשלום"
+m = monthStatus(row({ base_due: 290, adjustments_total: -40, credits_total: -40, paid_total: 250, verified_amount: 40 }));
+assert.deepEqual([m.shortfallAg, m.closedByPayment, m.closedVerifiedAg, m.verifiedAg, m.excessDecisionAg], [0, false, 0, 0, 4000]);
+let exE = excessItems(groupByApartment([row({ base_due: 290, adjustments_total: -40, credits_total: -40, paid_total: 250, verified_amount: 40 })], p3));
+assert.equal(exE.length, 1); assert.equal(exE[0].reason, "gap_closed_otherwise");
+m = monthStatus(row({ base_due: 0, paid_total: 0, verified_amount: 290 })); // חיוב בוטל (אפס): לא נסגר בתשלום
+assert.deepEqual([m.closedByPayment, m.closedVerifiedAg, m.excessDecisionAg], [false, 0, 29000]);
+
+// F. ביטול תשלום אחרי סגירת החוב: החוב חוזר להיות פתוח, ההחלטה נשמרת (אותו סכום קלט), הכספים לא משתנים
+const closedRow = row({ base_due: 290, paid_total: 290, allocated_paid: 290, verified_amount: 290, verified_id: "vx" });
+const frozen = JSON.stringify(closedRow);
+const before = monthStatus(closedRow);
+assert.deepEqual([before.closedByPayment, before.verifiedAg], [true, 0]);
+const reopened = monthStatus({ ...closedRow, paid_total: 0, allocated_paid: 0 });
+assert.deepEqual([reopened.closedByPayment, reopened.verifiedAg, reopened.shortfallAg, reopened.excessDecisionAg, reopened.verifiedId], [false, 29000, 29000, 0, "vx"]);
+assert.equal(JSON.stringify(closedRow), frozen, "הקלט (ההחלטה ההיסטורית) לא משתנה");
+// תשלום חלקי אחרי ביטול חלקי של התשלום: חלק נשאר חוב פתוח
+const partialAgain = monthStatus({ ...closedRow, paid_total: 100 });
+assert.deepEqual([partialAgain.verifiedAg, partialAgain.excessDecisionAg, partialAgain.closedByPayment], [19000, 10000, false]);
+
+// G. הסכומים הכספיים אינם תלויים בתיקון: מול הנוסחה הישנה, הפחתה/חוב מאומת/לבירור/פער/עודף זהים, והחריגה רק קטנה
+for (const r of many) {
+  const s = monthStatus(r);
+  const net = toAg(r.base_due) + toAg(r.adjustments_total), paid = toAg(r.paid_total), gap = Math.max(0, net - paid);
+  const red = Math.min(toAg(r.reduction_amount), gap), ver = Math.min(toAg(r.verified_amount), gap - red);
+  assert.deepEqual([s.shortfallAg, s.reductionAg, s.verifiedAg, s.clarifyAg, s.surplusAg, s.netAg, s.paidAg], [gap, red, ver, gap - red - ver, Math.max(0, paid - net), net, paid]);
+  const oldExcess = toAg(r.reduction_amount) + toAg(r.verified_amount) - red - ver;
+  assert.ok(s.excessDecisionAg <= oldExcess && s.excessDecisionAg + s.closedVerifiedAg + s.closedReductionAg === oldExcess);
+}
+console.log("ok   decision history vs open debt");
