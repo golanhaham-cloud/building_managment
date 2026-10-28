@@ -26,6 +26,8 @@ async function run(fd: FormData, fn: () => Promise<string>): Promise<State> {
     code = await fn();
     for (const p of PATHS) revalidatePath(p);
   } catch (e) {
+    // נרשם ביומן השרת (Vercel runtime logs) כדי שאפשר יהיה לאתר את הגורם בכשל. ההודעה למשתמש לא משתנה.
+    console.error("[allocation-action] failed:", e instanceof Error ? e.message : e);
     return { ok: false, message: friendlyError(e) };
   }
   redirect(`/payments/allocate?${s(fd, "mode") === "new" ? "mode=new&" : ""}done=${code}`);

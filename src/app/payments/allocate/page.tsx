@@ -7,6 +7,7 @@ import { BASES, BASIS_LABELS, basisIsConfirmed } from "@/lib/allocations";
 import { inp, lbl, ils, monthName } from "@/components/ui";
 import Link from "next/link";
 import DoneBanner from "@/components/DoneBanner";
+import VoidAllocationForm from "@/components/VoidAllocationForm";
 
 export const dynamic = "force-dynamic";
 
@@ -148,12 +149,8 @@ export default async function AllocatePage({ searchParams }: { searchParams: { m
                       <input name="reason" aria-label="סיבת השינוי" className={inp} placeholder="סיבת השינוי (חובה)" required minLength={3} />
                       <SubmitButton>עדכן בסיס</SubmitButton>
                     </ActionForm>
-                    <ActionForm action={voidAllocation} keepOnSuccess className="space-y-2 border border-red-100 rounded-lg p-2">
-                      <div className="text-xs font-semibold text-red-800">ביטול הקצאה: משחרר רק את הסכום שהוקצה. ההכנסה המקורית נשארת בכספים ללא שינוי.</div>
-                      <input type="hidden" name="id" value={a.id} />
-                      <input name="reason" aria-label="סיבת הביטול" className={inp} placeholder="סיבת הביטול (חובה)" required minLength={3} />
-                      <SubmitButton className="w-full rounded-lg bg-red-700 text-white text-sm py-2.5 min-h-[44px]" confirmText="לבטל את ההקצאה? ההכנסה המקורית לא תיפגע והסכום יחזור להיות זמין לשיוך.">בטל הקצאה</SubmitButton>
-                    </ActionForm>
+                    <VoidAllocationForm action={voidAllocation} id={a.id}
+                      label={`${ils(a.amount)} · ${a.kind === "fee" ? `דירה ${a.apartments?.apartment_number}, ${monthName(a.fee_month)} ${a.fee_year}` : `מטרה מיוחדת: ${a.purpose}`}`} />
                   </div>
                 </details>
               )}

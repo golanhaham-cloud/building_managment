@@ -49,3 +49,9 @@ ok("empty rows rejected", validateRows([], toAg(870)) !== null);
 
 console.log(fails ? `${fails} FAILED` : "all passed");
 process.exit(fails ? 1 : 0);
+
+// סיבת ביטול הקצאה
+import { validateVoidReason } from "../src/lib/allocations";
+if (validateVoidReason("") !== "יש להזין סיבת ביטול" || validateVoidReason("  ") !== "יש להזין סיבת ביטול") { console.error("FAIL void reason empty"); process.exit(1); }
+if (!validateVoidReason("אב") || validateVoidReason("הוזן בטעות") !== null || !validateVoidReason("א".repeat(501))) { console.error("FAIL void reason rules"); process.exit(1); }
+console.log("ok   void reason validation");

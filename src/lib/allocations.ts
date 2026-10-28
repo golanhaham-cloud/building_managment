@@ -97,3 +97,12 @@ export function toRpcItems(rows: AllocRow[]) {
 export function nextMonth(year: number, month: number) {
   return month === 12 ? { year: year + 1, month: 1 } : { year, month: month + 1 };
 }
+
+// סיבת ביטול הקצאה (חובה, לפחות 3 תווים). בדיקת נוחות בצד הלקוח; הבדיקה המחייבת במסד (REASON_REQUIRED).
+export function validateVoidReason(reason: string): string | null {
+  const r = reason.trim();
+  if (!r) return "יש להזין סיבת ביטול";
+  if (r.length < 3) return "סיבת הביטול קצרה מדי (לפחות 3 תווים)";
+  if (r.length > 500) return "סיבת הביטול ארוכה מדי (עד 500 תווים)";
+  return null;
+}
