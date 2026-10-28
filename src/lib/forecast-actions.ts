@@ -1,6 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { parseTxIds, isUuid } from "@/lib/forecast-links";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentAppUser } from "@/lib/current-user";
 import { friendlyError } from "@/lib/errors";
@@ -103,4 +105,32 @@ export async function voidForecastOneOff(_p: State, fd: FormData): Promise<State
     await rpc(sb, "forecast_void_one_off", { p_id: id, p_reason: s(fd, "reason") });
     return "ההוצאה הוסרה מהתחזית.";
   });
+}
+
+// שיוך ידני של הוצאות להוצאה קבועה (או ביטול שיוך). כל הבדיקות המחייבות נעשות בפונקציית המסד
+// link_transactions_to_forecast_item (הרשאת ועד, הוצאות פעילות בלבד, הכול או כלום, יומן ביקורת).
+// לא משנה סכומים, תאריכים, יתרות או תחזית. הצלחה מוצגת רק אחרי שהשרת אישר (הפניה עם done).
+export async function linkTransactionsToItem(_p: State, fd: FormData): Promise<State> {
+  let done = "";
+  try {
+    const u = await getCurrentAppUser();
+    if (!u || u.role !== "admin") throw new Error("NOT_ADMIN: אין לך הרשאת ועד לפעולה זו");
+    const { ids, error } = parseTxIds(fd.getAll("tx").map(String));
+    if (error) throw new Error("INVALID: " + error);
+    const unlink = s(fd, "mode") === "unlink";
+    const item = s(fd, "item");
+    if (!unlink && !isUuid(item)) throw new Error("INVALID: יש לבחור הוצאה קבועה");
+    const { data, error: e } = await createClient().rpc("link_transactions_to_forecast_item", { p_ids: ids, p_item_id: unlink ? null : item });
+    if (e) throw new Error(e.message);
+    const changed = Number((data as any)?.changed ?? 0);
+    done = `${unlink ? "unlinked" : "linked"}.${changed}`;
+    revalidatePath("/forecast"); revalidatePath("/forecast/link"); revalidatePath("/finances");
+  } catch (e) {
+    console.error("[forecast-link] failed:", e instanceof Error ? e.message : e);
+    return { ok: false, message: friendlyError(e) };
+  }
+  const keep = new URLSearchParams();
+  for (const k of ["q", "cat", "show"]) { const v = s(fd, k); if (v) keep.set(k, v); }
+  keep.set("done", done);
+  redirect(`/forecast/link?${keep.toString()}`);
 }

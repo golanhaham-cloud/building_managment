@@ -4,6 +4,7 @@ import { getCurrentAppUser } from "@/lib/current-user";
 import { ActionForm, SubmitButton } from "@/components/forms";
 import { inp, lbl, ils, monthName } from "@/components/ui";
 import { addForecastOneOff, saveForecastItem, saveForecastSettings, setForecastItemActive, setForecastScenario, voidForecastOneOff } from "@/lib/forecast-actions";
+import { groupByItem, type ItemHistory } from "@/lib/forecast-links";
 import { forecastMonth, fromAgorot, nextThreeMonths, recurringTotalAgorot, toAgorot, type FeeGroup } from "@/lib/forecast";
 
 export const dynamic = "force-dynamic";
@@ -18,15 +19,20 @@ export default async function ForecastPage() {
   const isAdmin = me?.role === "admin";
   const months = nextThreeMonths();
 
-  const [itemsRes, settingsRes, scenRes, oneOffRes, ...groupRes] = await Promise.all([
+  const [itemsRes, settingsRes, scenRes, oneOffRes, linkedRes, unlinkedRes, ...groupRes] = await Promise.all([
     supabase.from("forecast_items").select("*").eq("building_id", me?.building_id).order("is_active", { ascending: false }).order("monthly_estimate", { ascending: false }),
     supabase.from("forecast_settings").select("*").eq("building_id", me?.building_id).maybeSingle(),
     supabase.from("forecast_scenarios").select("fee_amount, non_paying, updated_at").eq("building_id", me?.building_id),
     supabase.from("forecast_one_offs").select("id, year, month, title, amount, note, voided_at, created_at").eq("building_id", me?.building_id).is("voided_at", null).order("year").order("month"),
+    supabase.from("transactions").select("id, date, amount, description, forecast_item_id, created_at, voided_at").eq("building_id", me?.building_id).not("forecast_item_id", "is", null).is("voided_at", null),
+    supabase.from("transactions").select("id", { count: "exact", head: true }).eq("building_id", me?.building_id).eq("type", "expense").is("voided_at", null).is("forecast_item_id", null),
     ...months.map((m) => supabase.rpc("forecast_fee_groups", { p_year: m.year, p_month: m.month })),
   ]);
   const loadError = itemsRes.error || settingsRes.error || scenRes.error || oneOffRes.error || groupRes.find((g) => g.error)?.error;
 
+  const histories = groupByItem((linkedRes.data ?? []) as any[]);
+  const linksAvailable = !linkedRes.error; // אם העמודה אינה זמינה לא מציגים היסטוריה כאילו אין תשלומים
+  const unlinkedCount = unlinkedRes.count ?? null;
   const items = (itemsRes.data ?? []).map((i: any) => ({ ...i, monthly_estimate: Number(i.monthly_estimate) }));
   const active = items.filter((i: any) => i.is_active);
   const stopped = items.filter((i: any) => !i.is_active);
@@ -104,6 +110,10 @@ export default async function ForecastPage() {
         <p className="text-xs text-gray-600">
           נתוני הפתיחה לפי דפי הבנק 1.12.2024–16.10.2026. הסכום מחושב מהשורות.{lastUpdate ? ` עודכן לאחרונה: ${fmtTs(lastUpdate)}.` : ""}
         </p>
+        <p className="text-xs text-gray-600" data-note="links">
+          ״כל התשלומים״ בכל סעיף מציג רק תשלומים ששויכו אליו ידנית על ידי הוועד, ולא התאמה אוטומטית. {unlinkedCount !== null ? `${unlinkedCount} הוצאות פעילות טרם שויכו לאף סעיף, ולכן הרשימה עדיין אינה בהכרח ההיסטוריה המלאה. ` : ""}
+          {isAdmin && <Link href="/forecast/link" className="text-brand-700 underline font-semibold">שיוך הוצאות לסעיפים</Link>}
+        </p>
         <ul className="divide-y divide-gray-100">
           {active.map((i: any) => (
             <li key={i.id} className="py-3 space-y-1">
@@ -122,6 +132,7 @@ export default async function ForecastPage() {
               )}
               {i.notes && <div className="text-xs text-gray-600">{i.notes}</div>}
               <div className="text-xs text-gray-500">עודכן: {fmtTs(i.updated_at)}</div>
+              <PaymentsList history={histories.get(i.id)} available={linksAvailable} isAdmin={isAdmin} />
               {isAdmin && <ItemEditor item={i} />}
             </li>
           ))}
@@ -140,6 +151,7 @@ export default async function ForecastPage() {
                 <li key={i.id} className="py-2 text-sm space-y-1">
                   <div className="flex justify-between gap-2"><span>{i.name}{i.supplier ? ` · ${i.supplier}` : ""}</span><span className="tabular-nums" dir="ltr">{ils(i.monthly_estimate)}</span></div>
                   <div className="text-xs text-gray-600">הופסק {i.stopped_at ? fmtTs(i.stopped_at) : ""}{i.stop_reason ? ` · ${i.stop_reason}` : ""}</div>
+                  <PaymentsList history={histories.get(i.id)} available={linksAvailable} isAdmin={isAdmin} />
                   {isAdmin && (
                     <ActionForm action={setForecastItemActive} className="inline">
                       <input type="hidden" name="id" value={i.id} /><input type="hidden" name="active" value="true" />
@@ -275,6 +287,39 @@ function ItemForm({ item }: { item?: any }) {
       <div><label className={lbl}>הערות</label><input name="notes" defaultValue={item?.notes ?? ""} className={inp} /></div>
       <SubmitButton>{item ? "שמירת שינויים" : "הוספת סעיף"}</SubmitButton>
     </ActionForm>
+  );
+}
+
+function PaymentsList({ history, available, isAdmin }: { history?: ItemHistory; available: boolean; isAdmin: boolean }) {
+  if (!available) return <div className="text-xs text-gray-500">היסטוריית התשלומים אינה זמינה כרגע.</div>;
+  const n = history?.count ?? 0;
+  return (
+    <details data-details="payments" className="rounded-lg border border-gray-200 px-2">
+      <summary className="cursor-pointer text-sm text-brand-700 font-semibold min-h-[44px] inline-flex items-center w-full">כל התשלומים{n ? ` (${n})` : ""}</summary>
+      <div className="pb-2 space-y-2">
+        {!history || !n ? (
+          <p data-state="no-linked" className="text-xs text-gray-700">
+            עדיין לא שויכו תשלומים להוצאה זו. השיוך ידני, ולכן זה לא אומר שלא שולמו תשלומים.
+            {isAdmin && <> <Link href="/forecast/link" className="text-brand-700 underline">לשיוך תשלומים</Link></>}
+          </p>
+        ) : (
+          <>
+            <p className="text-xs text-gray-700" data-v="summary">{n === 1 ? "תשלום אחד ששויך" : `${n} תשלומים ששויכו`} · סך ששולם: <b dir="ltr">{ils(history.totalAgorot / 100)}</b> <span className="text-gray-500">(רק תשלומים ששויכו ידנית)</span></p>
+            <ul className="divide-y divide-gray-100">
+              {history.rows.map((r) => (
+                <li key={r.id} className="py-2 flex items-start justify-between gap-3 text-sm">
+                  <div className="min-w-0">
+                    <div className="break-words">{r.description ?? "ללא תיאור"}</div>
+                    <div className="text-xs text-gray-500">{fmtDate(r.date)} · <Link href={`/finances#tx-${r.id}`} className="text-brand-700 underline">לתנועה המקורית</Link></div>
+                  </div>
+                  <div className="font-semibold tabular-nums whitespace-nowrap" dir="ltr">{ils(Number(r.amount))}</div>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+      </div>
+    </details>
   );
 }
 

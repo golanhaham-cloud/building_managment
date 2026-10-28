@@ -16,7 +16,7 @@ export default async function FinancesPage({ searchParams }: { searchParams: Rec
 
   const { data: txAll } = await supabase
     .from("transactions")
-    .select("id, type, date, amount, description, notes, category_id, supplier_id, row_version, voided_at, void_reason, fee_year, fee_month, categories(name), suppliers(name), apartments:source_apartment_id(apartment_number)")
+    .select("id, type, date, amount, description, notes, category_id, supplier_id, row_version, voided_at, void_reason, fee_year, fee_month, forecast_item_id, forecast_items:forecast_item_id(name), categories(name), suppliers(name), apartments:source_apartment_id(apartment_number)")
     .eq("building_id", appUser?.building_id)
     .order("date", { ascending: false })
     .order("created_at", { ascending: false });
@@ -215,6 +215,8 @@ export default async function FinancesPage({ searchParams }: { searchParams: Rec
                     {t.fee_month ? ` · ועד ${t.fee_month}/${t.fee_year}` : ""}
                   </div>
                   {t.notes && <div className="text-xs text-gray-500">{t.notes}</div>}
+                  {!voided && t.forecast_items?.name && <div className="text-xs text-brand-700" data-v="forecast-link">הוצאה קבועה: {t.forecast_items.name}</div>}
+                  {isAdmin && !voided && t.type === "expense" && <div className="text-xs"><Link href={`/forecast/link?show=all&q=${encodeURIComponent(String(t.description ?? "").slice(0, 40))}#r-${t.id}`} className="text-brand-700 underline">{t.forecast_item_id ? "שינוי שיוך להוצאה קבועה" : "שיוך להוצאה קבועה"}</Link></div>}
                   {isAdmin && !voided && (allocated.get(t.id) ?? 0) > 0 && (
                     <div className="text-xs text-brand-700">שויך {ils(allocated.get(t.id))} מתוך {ils(t.amount)} · <Link href={`/payments/allocate?tx=${t.id}`} className="underline">פרטים</Link></div>
                   )}
