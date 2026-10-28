@@ -4,16 +4,17 @@ import { addTransactionAction, correctTransaction, voidTransaction } from "@/lib
 import { ActionForm, SubmitButton } from "@/components/forms";
 import AuditList from "@/components/AuditList";
 import { userNameMap, type AuditEntry } from "@/lib/audit";
-import { inp, lbl, btnDanger, ils } from "@/components/ui";
+import { inp, lbl, btnDanger, ils, monthName } from "@/components/ui";
 import Link from "next/link";
 import BalanceBreakdown from "@/components/BalanceBreakdown";
+import { parseFilters, filterTransactions, summarize, isFiltered, activeCount, NO_CAT, NO_APT, type TxRow } from "@/lib/tx-filter";
 
-export default async function FinancesPage() {
+export default async function FinancesPage({ searchParams }: { searchParams: Record<string, string | string[] | undefined> }) {
   const supabase = createClient();
   const appUser = await getCurrentAppUser();
   const isAdmin = appUser?.role === "admin";
 
-  const { data: tx } = await supabase
+  const { data: txAll } = await supabase
     .from("transactions")
     .select("id, type, date, amount, description, notes, category_id, supplier_id, row_version, voided_at, void_reason, fee_year, fee_month, categories(name), suppliers(name), apartments:source_apartment_id(apartment_number)")
     .eq("building_id", appUser?.building_id)
@@ -29,9 +30,35 @@ export default async function FinancesPage() {
       ])
     : [{ data: [] as any[] }, { data: [] as any[] }];
 
+  // כמה מכל הכנסה שויך לדירות/חודשים (ועד בלבד). השיוך אינו משנה את הסכום או את היתרה.
+  const allocated = new Map<string, number>();
+  const allocApts = new Map<string, Set<string>>(); // דירות לפי שיוכים פעילים (לסינון בלבד)
+  if (isAdmin) {
+    const { data: al } = await supabase.from("payment_allocations").select("transaction_id, amount, apartments:apartment_id(apartment_number)").eq("building_id", appUser?.building_id).is("voided_at", null);
+    for (const a of al ?? []) {
+      allocated.set((a as any).transaction_id, (allocated.get((a as any).transaction_id) ?? 0) + Number((a as any).amount));
+      const n = (a as any).apartments?.apartment_number;
+      if (n != null) { const s = allocApts.get((a as any).transaction_id) ?? new Set<string>(); s.add(String(n)); allocApts.set((a as any).transaction_id, s); }
+    }
+  }
+
+  // סינון וחיפוש: על כל התנועות שנטענו (ללא עימוד), כך שהסיכומים תמיד על כל התוצאות המסוננות.
+  const filters = parseFilters(searchParams ?? {});
+  if (!isAdmin) filters.apt = ""; // שיוכים גלויים לוועד בלבד
+  const filtered = isFiltered(filters);
+  const allRows = (txAll ?? []) as any[];
+  const tx = filterTransactions(allRows as TxRow[], filters, allocApts) as any[];
+  const sum = summarize(tx);
+  const years = Array.from(new Set(allRows.map((r) => String(r.date).slice(0, 4)))).sort().reverse();
+  const catList = new Map<string, string>();
+  for (const r of allRows) if (r.category_id && r.categories?.name) catList.set(r.category_id, r.categories.name);
+  const aptList = new Set<string>(); for (const s of Array.from(allocApts.values())) s.forEach((x) => aptList.add(x));
+  for (const r of allRows) if (r.apartments?.apartment_number != null) aptList.add(String(r.apartments.apartment_number));
+  const aptSorted = Array.from(aptList).sort((x, y) => Number(x) - Number(y));
+
   let history = new Map<string, AuditEntry[]>();
   let names = new Map<string, string>();
-  if (isAdmin && tx?.length) {
+  if (isAdmin && tx.length) {
     const { data: log } = await supabase
       .from("audit_log")
       .select("*")
@@ -44,13 +71,6 @@ export default async function FinancesPage() {
       history.set(e.entity_id!, arr);
     }
     names = await userNameMap(supabase, (log ?? []).map((l: any) => l.user_id));
-  }
-
-  // כמה מכל הכנסה שויך לדירות/חודשים (ועד בלבד). השיוך אינו משנה את הסכום או את היתרה.
-  const allocated = new Map<string, number>();
-  if (isAdmin) {
-    const { data: al } = await supabase.from("payment_allocations").select("transaction_id, amount").eq("building_id", appUser?.building_id).is("voided_at", null);
-    for (const a of al ?? []) allocated.set((a as any).transaction_id, (allocated.get((a as any).transaction_id) ?? 0) + Number((a as any).amount));
   }
 
   const catOptions = (categories ?? []).map((c: any) => (
@@ -111,8 +131,76 @@ export default async function FinancesPage() {
         </details>
       )}
 
+      <div data-section="tx-filter" className="card space-y-3">
+        <details open={filtered} className="group">
+          <summary className="cursor-pointer inline-flex items-center gap-2 min-h-[44px] text-sm font-semibold text-brand-700" data-action="toggle-filter">
+            🔎 סינון וחיפוש{filtered ? ` (${activeCount(filters)} פעילים)` : ""}
+          </summary>
+          <form method="get" action="/finances" className="space-y-2 mt-2" data-form="tx-filter">
+            <div>
+              <label className={lbl} htmlFor="f-q">חיפוש בתיאור, בהערה, בקטגוריה או בספק (כולל שמות מעבירים ומקבלי תשלום)</label>
+              <input id="f-q" type="search" name="q" defaultValue={filters.q} placeholder="למשל: כהן, ניקיון" className={inp} maxLength={100} />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className={lbl} htmlFor="f-type">סוג תנועה</label>
+                <select id="f-type" name="type" defaultValue={filters.type} className={inp}>
+                  <option value="all">הכל</option><option value="income">הכנסות</option><option value="expense">הוצאות</option>
+                </select>
+              </div>
+              <div>
+                <label className={lbl} htmlFor="f-cat">קטגוריה</label>
+                <select id="f-cat" name="cat" defaultValue={filters.cat} className={inp}>
+                  <option value="">כל הקטגוריות</option>
+                  {Array.from(catList.entries()).sort((a, b) => a[1].localeCompare(b[1], "he")).map(([id, n]) => <option key={id} value={id}>{n}</option>)}
+                  <option value={NO_CAT}>ללא קטגוריה</option>
+                </select>
+              </div>
+              <div>
+                <label className={lbl} htmlFor="f-year">שנה</label>
+                <select id="f-year" name="year" defaultValue={filters.year} className={inp}>
+                  <option value="">כל התקופה</option>
+                  {years.map((y) => <option key={y} value={y}>{y}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className={lbl} htmlFor="f-month">חודש</label>
+                <select id="f-month" name="month" defaultValue={filters.month} className={inp}>
+                  <option value="">כל החודשים</option>
+                  {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => <option key={m} value={m}>{monthName(m)}</option>)}
+                </select>
+              </div>
+              {isAdmin && (
+                <div className="col-span-2">
+                  <label className={lbl} htmlFor="f-apt">דירה (לפי הדירה שנרשמה בתנועה ולפי שיוכים פעילים)</label>
+                  <select id="f-apt" name="apt" defaultValue={filters.apt} className={inp}>
+                    <option value="">כל הדירות</option>
+                    {aptSorted.map((n) => <option key={n} value={n}>דירה {n}</option>)}
+                    <option value={NO_APT}>ללא שיוך</option>
+                  </select>
+                </div>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <button type="submit" className="flex-1 rounded-lg bg-brand-600 text-white text-sm py-2.5 min-h-[44px]">החל סינון</button>
+              {filtered && <Link href="/finances" data-action="clear-filter" className="flex-1 text-center rounded-lg border border-gray-300 text-sm py-2.5 min-h-[44px] inline-flex items-center justify-center">נקה סינון</Link>}
+            </div>
+          </form>
+        </details>
+        <div data-section="tx-summary" className="rounded-lg bg-gray-50 p-3 text-sm space-y-1">
+          <div className="font-semibold">{filtered ? "סיכום התוצאות המסוננות בלבד" : "סיכום כל התנועות"} <span className="font-normal text-xs text-gray-500">(אינו יתרת הקופה)</span></div>
+          <div className="grid grid-cols-2 gap-x-3 gap-y-1">
+            <div>מספר תנועות: <b data-v="count">{sum.count}</b></div>
+            <div>הפרש: <b data-v="net" className={sum.netAgorot < 0 ? "text-red-700" : "text-green-700"} dir="ltr">{ils(sum.netAgorot / 100)}</b></div>
+            <div>סך הכנסות: <b data-v="income" className="text-green-700">{ils(sum.incomeAgorot / 100)}</b></div>
+            <div>סך הוצאות: <b data-v="expense" className="text-red-700">{ils(sum.expenseAgorot / 100)}</b></div>
+          </div>
+          {sum.voided > 0 && <div className="text-xs text-gray-500">{sum.voided === 1 ? "תנועה מבוטלת אחת מוצגת" : `${sum.voided} תנועות מבוטלות מוצגות`} ברשימה ואינה נספרת בסכומים.</div>}
+        </div>
+      </div>
+
       <div className="card divide-y divide-gray-100">
-        {tx?.map((t: any) => {
+        {tx.map((t: any) => {
           const voided = !!t.voided_at;
           return (
             <div key={t.id} id={`tx-${t.id}`} className="py-3 scroll-mt-4">
@@ -193,7 +281,9 @@ export default async function FinancesPage() {
             </div>
           );
         })}
-        {!tx?.length && <p className="text-gray-500 text-sm py-4">אין עדיין תנועות רשומות.</p>}
+        {!tx.length && (filtered
+          ? <p data-state="no-results" className="text-gray-600 text-sm py-4">לא נמצאו תנועות התואמות את הסינון. נסה/י לשנות או <Link href="/finances" className="text-brand-700 underline">לנקות את הסינון</Link>.</p>
+          : <p className="text-gray-500 text-sm py-4">אין עדיין תנועות רשומות.</p>)}
       </div>
     </div>
   );
