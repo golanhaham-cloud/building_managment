@@ -11,6 +11,7 @@ import {
   coverageSummary, decisionRoom, excessItems, fromAg, hasVisibleDecisionState, groupByApartment, monthRange, overallTotals, resolvePeriod, ymKey,
   type MonthStatus, type StatusRow, type Totals,
 } from "@/lib/collection-status";
+import { financesTxHref } from "@/lib/tx-filter";
 import { groupUnallocated, type GroupedItem } from "@/lib/income-classes";
 import GapDecisionForm from "@/components/GapDecisionForm";
 import { peopleByApartment, type DirectoryPerson } from "@/lib/apartment-people";
@@ -427,7 +428,7 @@ function IncomeGroupCard({ id, title, note, group, empty, mode }: { id: string; 
               <div className="text-xs text-gray-600">התקבל ב־{dateHe(s.date)}{Number(s.allocated) > 0 ? ` · סכום מקורי ${ils(Number(s.amount))} · שויך ${ils(Number(s.allocated))}` : ""}</div>
               {mode === "review" && <div className="text-xs text-amber-800">{s.reason}</div>}
               <div className="flex flex-wrap gap-x-4">
-                <Link href={`/finances#tx-${s.id}`} className="text-xs text-brand-700 underline inline-flex items-center min-h-[44px]">לתנועה בכספים</Link>
+                <Link href={financesTxHref(s.id, s.date)} className="text-xs text-brand-700 underline inline-flex items-center min-h-[44px]">לתנועה בכספים</Link>
                 {mode !== "refund" && <Link href={`/payments/allocate?tx=${s.id}`} className="text-xs text-brand-700 underline inline-flex items-center min-h-[44px]">{mode === "review" ? "שיוך (רק אם זה תשלום דייר)" : "שיוך לדירה ולחודשים"}</Link>}
               </div>
             </li>

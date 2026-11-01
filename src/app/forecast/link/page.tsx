@@ -5,6 +5,7 @@ import { inp, lbl, ils } from "@/components/ui";
 import DoneBanner from "@/components/DoneBanner";
 import LinkTransactionsForm from "@/components/LinkTransactionsForm";
 import { linkTransactionsToItem } from "@/lib/forecast-actions";
+import { financesTxHref } from "@/lib/tx-filter";
 import { parseLinkFilters } from "@/lib/forecast-links";
 
 export const dynamic = "force-dynamic";
@@ -90,7 +91,7 @@ export default async function LinkPage({ searchParams }: { searchParams: Record<
                     </span>
                     <span className="font-bold tabular-nums text-red-700 whitespace-nowrap" dir="ltr">{ils(t.amount)}</span>
                   </label>
-                  <Link href={`/finances#tx-${t.id}`} className="text-xs text-brand-700 underline ps-8 inline-flex items-center min-h-[32px]">לתנועה המקורית</Link>
+                  <Link href={financesTxHref(t.id, t.date)} className="text-xs text-brand-700 underline ps-8 inline-flex items-center min-h-[32px]">לתנועה המקורית</Link>
                 </li>
               ))}
             </ul>

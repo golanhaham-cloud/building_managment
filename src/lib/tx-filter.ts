@@ -88,3 +88,26 @@ export function summarize(rows: TxRow[]): TxSummary {
 export function filterTransactions(rows: TxRow[], f: TxFilters, allocApts: Map<string, Set<string>>): TxRow[] {
   return rows.filter((t) => matches(t, f, allocApts));
 }
+
+// --- תקופת התצוגה של עמוד הכספים (תצוגה בלבד, לא משנה נתונים) ---
+// ברירת מחדל בכניסה בלי פרמטרים: החודש הנוכחי, ואם אין בו תנועות - החודש האחרון שיש בו תנועות.
+export function defaultPeriod(dates: string[], today: Date = new Date()): { year: string; month: string } {
+  const y = today.getFullYear();
+  const m = today.getMonth() + 1;
+  const has = dates.some((d) => Number(d.slice(0, 4)) === y && Number(d.slice(5, 7)) === m);
+  if (has || !dates.length) return { year: String(y), month: String(m) };
+  const latest = dates.slice().sort().reverse()[0];
+  return { year: latest.slice(0, 4), month: String(Number(latest.slice(5, 7))) };
+}
+
+export function prevMonthOf(year: number, month: number): { year: number; month: number } {
+  return month === 1 ? { year: year - 1, month: 12 } : { year, month: month - 1 };
+}
+export function nextMonthOf(year: number, month: number): { year: number; month: number } {
+  return month === 12 ? { year: year + 1, month: 1 } : { year, month: month + 1 };
+}
+
+// קישור עומק לתנועה בעמוד הכספים: כולל את חודש התנועה כדי שהשורה תוצג גם עם ברירת המחדל החודשית.
+export function financesTxHref(id: string, date: string): string {
+  return `/finances?year=${date.slice(0, 4)}&month=${Number(date.slice(5, 7))}#tx-${id}`;
+}

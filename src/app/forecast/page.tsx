@@ -5,6 +5,7 @@ import { ActionForm, SubmitButton } from "@/components/forms";
 import { inp, lbl, ils, monthName } from "@/components/ui";
 import { addForecastOneOff, saveForecastItem, saveForecastSettings, setForecastItemActive, setForecastScenario, voidForecastOneOff } from "@/lib/forecast-actions";
 import { groupByItem, type ItemHistory } from "@/lib/forecast-links";
+import { financesTxHref } from "@/lib/tx-filter";
 import { forecastMonth, fromAgorot, nextThreeMonths, recurringTotalAgorot, toAgorot, type FeeGroup } from "@/lib/forecast";
 
 export const dynamic = "force-dynamic";
@@ -310,7 +311,7 @@ function PaymentsList({ history, available, isAdmin }: { history?: ItemHistory; 
                 <li key={r.id} className="py-2 flex items-start justify-between gap-3 text-sm">
                   <div className="min-w-0">
                     <div className="break-words">{r.description ?? "ללא תיאור"}</div>
-                    <div className="text-xs text-gray-500">{fmtDate(r.date)} · <Link href={`/finances#tx-${r.id}`} className="text-brand-700 underline">לתנועה המקורית</Link></div>
+                    <div className="text-xs text-gray-500">{fmtDate(r.date)} · <Link href={financesTxHref(r.id, r.date)} className="text-brand-700 underline">לתנועה המקורית</Link></div>
                   </div>
                   <div className="font-semibold tabular-nums whitespace-nowrap" dir="ltr">{ils(Number(r.amount))}</div>
                 </li>

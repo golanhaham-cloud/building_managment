@@ -1,6 +1,6 @@
 {
   "name": "livna6-building",
-  "version": "1.26.3",
+  "version": "1.27.0",
   "private": true,
   "scripts": {
     "dev": "next dev",

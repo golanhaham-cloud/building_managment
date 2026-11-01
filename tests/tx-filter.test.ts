@@ -1,4 +1,4 @@
-import { parseFilters, filterTransactions, summarize, isFiltered, activeCount, EMPTY_FILTERS, type TxRow } from "../src/lib/tx-filter";
+import { parseFilters, filterTransactions, summarize, isFiltered, activeCount, EMPTY_FILTERS, defaultPeriod, prevMonthOf, nextMonthOf, financesTxHref, type TxRow } from "../src/lib/tx-filter";
 const fail = (m: string) => { console.error("FAIL " + m); process.exit(1); };
 const R = (o: Partial<TxRow> & { id: string }): TxRow => ({ type: "income", date: "2026-10-06", amount: 100, description: "", ...o });
 const rows: TxRow[] = [
@@ -27,3 +27,15 @@ if (s.count !== 5 || s.voided !== 1 || s.incomeAgorot !== 53030 || s.expenseAgor
 if (activeCount(F({ q: "a", type: "income", year: "2026" })) !== 3 || activeCount(EMPTY_FILTERS) !== 0) fail("count");
 if (F({ year: "20x", month: "13" }).year !== "" || F({ month: "13" }).month !== "") fail("param sanitising");
 console.log("tx-filter tests passed");
+
+// תקופת ברירת מחדל וקישורי עומק
+const dp1 = defaultPeriod(["2026-10-06", "2025-01-02"], new Date("2026-11-01T12:00:00"));
+if (dp1.year !== "2026" || dp1.month !== "10") fail("defaultPeriod fallback " + JSON.stringify(dp1));
+const dp2 = defaultPeriod(["2026-11-15"], new Date("2026-11-01T12:00:00"));
+if (dp2.year !== "2026" || dp2.month !== "11") fail("defaultPeriod current " + JSON.stringify(dp2));
+const dp3 = defaultPeriod([], new Date("2026-11-01T12:00:00"));
+if (dp3.year !== "2026" || dp3.month !== "11") fail("defaultPeriod empty " + JSON.stringify(dp3));
+if (prevMonthOf(2026, 1).year !== 2025 || prevMonthOf(2026, 1).month !== 12) fail("prev wrap");
+if (nextMonthOf(2026, 12).year !== 2027 || nextMonthOf(2026, 12).month !== 1) fail("next wrap");
+if (prevMonthOf(2026, 10).month !== 9 || nextMonthOf(2026, 10).month !== 11) fail("step");
+if (financesTxHref("abc", "2026-10-06") !== "/finances?year=2026&month=10#tx-abc") fail("href " + financesTxHref("abc", "2026-10-06"));
