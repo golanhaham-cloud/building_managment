@@ -8,6 +8,7 @@ import { inp, lbl, btnDanger, ils, monthName } from "@/components/ui";
 import Link from "next/link";
 import BalanceBreakdown from "@/components/BalanceBreakdown";
 import { parseFilters, filterTransactions, summarize, isFiltered, activeCount, NO_CAT, NO_APT, type TxRow } from "@/lib/tx-filter";
+import { isLivna4Refund, LIVNA4_REFUND_NOTE } from "@/lib/income-classes";
 
 export default async function FinancesPage({ searchParams }: { searchParams: Record<string, string | string[] | undefined> }) {
   const supabase = createClient();
@@ -16,7 +17,7 @@ export default async function FinancesPage({ searchParams }: { searchParams: Rec
 
   const { data: txAll } = await supabase
     .from("transactions")
-    .select("id, type, date, amount, description, notes, category_id, supplier_id, row_version, voided_at, void_reason, fee_year, fee_month, forecast_item_id, forecast_items:forecast_item_id(name), categories(name), suppliers(name), apartments:source_apartment_id(apartment_number)")
+    .select("id, type, date, amount, description, notes, category_id, supplier_id, source_apartment_id, row_version, voided_at, void_reason, fee_year, fee_month, forecast_item_id, forecast_items:forecast_item_id(name), categories(name), suppliers(name), apartments:source_apartment_id(apartment_number)")
     .eq("building_id", appUser?.building_id)
     .order("date", { ascending: false })
     .order("created_at", { ascending: false });
@@ -221,7 +222,9 @@ export default async function FinancesPage({ searchParams }: { searchParams: Rec
                     <div className="text-xs text-brand-700">שויך {ils(allocated.get(t.id))} מתוך {ils(t.amount)} · <Link href={`/payments/allocate?tx=${t.id}`} className="underline">פרטים</Link></div>
                   )}
                   {isAdmin && !voided && t.type === "income" && !t.fee_year && !(allocated.get(t.id) ?? 0) && (
-                    <div className="text-xs"><Link href={`/payments/allocate?tx=${t.id}`} className="text-brand-700 underline">שייך לדירה ולחודשים</Link></div>
+                    isLivna4Refund({ id: t.id, date: String(t.date), amount: t.amount, allocated: 0, available: t.amount, description: t.description ?? null, category_name: t.categories?.name ?? null, apartment_id: t.source_apartment_id ?? null })
+                      ? <div className="text-xs text-gray-600">{LIVNA4_REFUND_NOTE}</div>
+                      : <div className="text-xs"><Link href={`/payments/allocate?tx=${t.id}`} className="text-brand-700 underline">שייך לדירה ולחודשים</Link></div>
                   )}
                   {voided && <div className="text-xs text-red-700">בוטל: {t.void_reason}</div>}
                 </div>

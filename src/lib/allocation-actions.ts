@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentAppUser } from "@/lib/current-user";
 import { friendlyError } from "@/lib/errors";
+import { assertAllocatable } from "@/lib/income-classes";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -50,6 +51,10 @@ export async function allocateExistingIncome(_p: State, fd: FormData): Promise<S
     const tx = s(fd, "transaction_id");
     if (!/^[0-9a-f-]{36}$/i.test(tx)) throw new Error("INVALID: יש לבחור הכנסה קיימת");
     const supabase = createClient();
+    // אכיפה בצד השרת, לפני הקריאה למסד: החזר מליבנה 4 אינו תשלום דייר ולא ניתן לשיוך, גם בבקשה ישירה שעוקפת את הממשק.
+    // אין כאן שינוי נתונים: קריאה בלבד של אותו סיווג מפורש (קטגוריה, דירת מקור) שמשמש את הגבייה.
+    const { data: txRow } = await supabase.from("transactions").select("id, description, source_apartment_id, categories(name)").eq("id", tx).maybeSingle();
+    if (txRow) assertAllocatable({ description: txRow.description ?? null, category_name: (txRow as any).categories?.name ?? null, apartment_id: txRow.source_apartment_id ?? null });
     const { data, error } = await supabase.rpc("allocate_income", { p_tx: tx, p_items: items(fd) });
     if (error) throw new Error(error.message);
     return `allocated.${Number(data?.count ?? 0)}`;
@@ -61,6 +66,8 @@ export async function recordNewIncomeWithAllocations(_p: State, fd: FormData): P
   return run(fd, async () => {
     const amount = Number(s(fd, "amount"));
     if (!(amount > 0)) throw new Error("INVALID: יש להזין סכום חיובי");
+    // תשלום חדש עם שיוכים מיועד לתשלומי דיירים: החזר מליבנה 4 נרשם כהכנסה רגילה בכספים, לא כאן.
+    assertAllocatable({ description: s(fd, "description") || null });
     const supabase = createClient();
     const { data, error } = await supabase.rpc("record_income_with_allocations", {
       p_date: s(fd, "date") || new Date().toISOString().slice(0, 10),

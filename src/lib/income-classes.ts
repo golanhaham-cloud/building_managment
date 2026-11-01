@@ -50,3 +50,29 @@ export function groupUnallocated(sources: UnallocatedSource[]): Grouped {
   for (const g of Object.values(out)) g.items.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
   return out;
 }
+
+// החזר מליבנה 4 הוא הכנסה של הבניין, לא תשלום דייר: אי אפשר לשייך אותו לדירה ולחודשים.
+// אותו כלל בכל המסכים ובצד השרת, על אותו סיווג משותף (classifySource). needs_review אינו נחסם:
+// אין מספיק נתונים כדי להבחין, והפער מוצג בעמוד הגבייה בלי ניחוש.
+export const LIVNA4_REFUND_NOTE = "החזר מליבנה 4 - הכנסה של הבניין, לא תשלום דייר";
+export const LIVNA4_REFUND_BLOCK = "החזר מליבנה 4 הוא הכנסה של הבניין ולא תשלום דייר, ולכן לא ניתן לשייך אותו לדירה ולחודשים";
+
+export function isLivna4Refund(s: UnallocatedSource): boolean {
+  return classifySource(s).group === "livna4_refund";
+}
+
+// הפרדת מקורות לשיוך: דיירים וממתיני סיווג נשארים זמינים, החזרי ליבנה 4 יוצאים מהבחירה.
+export function partitionAllocatable<T extends UnallocatedSource>(sources: T[]): { allocatable: T[]; refunds: T[] } {
+  const allocatable: T[] = [];
+  const refunds: T[] = [];
+  for (const s of sources) (isLivna4Refund(s) ? refunds : allocatable).push(s);
+  return { allocatable, refunds };
+}
+
+// אכיפת צד שרת לפני כל פעולת שיוך. זורק שגיאה בעברית על החזר; לא משנה דבר במקורות תקינים,
+// כולל תשלום של דירה 4 בבניין ותשלום חלקי.
+export function assertAllocatable(meta: { description: string | null; category_name?: string | null; apartment_id?: string | null }): void {
+  if (isLivna4Refund({ id: "", date: "", amount: 0, allocated: 0, available: 0, ...meta })) {
+    throw new Error(`LIVNA4_REFUND: ${LIVNA4_REFUND_BLOCK}`);
+  }
+}

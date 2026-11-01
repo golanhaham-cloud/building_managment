@@ -4,6 +4,7 @@ import AllocationForm, { type Apt, type Charges, type Source } from "@/component
 import { ActionForm, SubmitButton } from "@/components/forms";
 import { updateAllocationBasis, voidAllocation } from "@/lib/allocation-actions";
 import { BASES, BASIS_LABELS, basisIsConfirmed } from "@/lib/allocations";
+import { partitionAllocatable, LIVNA4_REFUND_NOTE, LIVNA4_REFUND_BLOCK } from "@/lib/income-classes";
 import { inp, lbl, ils, monthName } from "@/components/ui";
 import Link from "next/link";
 import DoneBanner from "@/components/DoneBanner";
@@ -55,9 +56,21 @@ export default async function AllocatePage({ searchParams }: { searchParams: { m
       .limit(100),
   ]);
 
-  const sources: Source[] = (src ?? []).map((s: any) => ({
+  const allSources: Source[] = (src ?? []).map((s: any) => ({
     id: s.id, date: s.date, amount: Number(s.amount), description: s.description, payment_method: s.payment_method, allocated: Number(s.allocated), available: Number(s.available),
   }));
+
+  // אותו סיווג משותף כמו בעמוד הגבייה: קוראים את הסיווג המפורש (קטגוריה, דירת מקור) בלי לשנות רישומים,
+  // ומוציאים החזרי ליבנה 4 מהבחירה לשיוך. הם נשארים נגישים בכספים ובגבייה, רק לא כמקור לשיוך.
+  const { data: srcMeta } = allSources.length
+    ? await supabase.from("transactions").select("id, source_apartment_id, categories(name)").eq("building_id", appUser.building_id).in("id", allSources.map((s) => s.id))
+    : { data: [] as any[] };
+  const metaTx = new Map<string, any>((srcMeta ?? []).map((m: any) => [m.id, m]));
+  const { allocatable, refunds } = partitionAllocatable(allSources.map((s) => ({
+    ...s, category_name: metaTx.get(s.id)?.categories?.name ?? null, apartment_id: metaTx.get(s.id)?.source_apartment_id ?? null,
+  })));
+  const sources: Source[] = allocatable;
+  const blockedTx = searchParams.tx && refunds.some((s) => s.id === searchParams.tx) ? searchParams.tx : undefined;
   const adjBy = new Map<string, number>();
   for (const a of adj ?? []) {
     const k = `${a.apartment_id}|${a.year}|${a.month}`;
@@ -77,7 +90,7 @@ export default async function AllocatePage({ searchParams }: { searchParams: { m
     apt: aptIds.includes(searchParams.apt ?? "") ? searchParams.apt : undefined,
     year: Number(searchParams.year) || undefined,
     month: Number(searchParams.month) || undefined,
-    tx: sources.some((s) => s.id === searchParams.tx) ? searchParams.tx : undefined,
+    tx: sources.some((s) => s.id === searchParams.tx) && !blockedTx ? searchParams.tx : undefined,
   };
 
   const [doneCode, doneN] = String(searchParams.done ?? "").split(".");
@@ -97,6 +110,12 @@ export default async function AllocatePage({ searchParams }: { searchParams: { m
       </div>
       {doneText && <DoneBanner text={doneText} keep={mode === "new" ? "mode=new" : ""} />}
 
+      {blockedTx && (
+        <div className="card text-sm border-amber-300 bg-amber-50">
+          <b>{LIVNA4_REFUND_NOTE}.</b> {LIVNA4_REFUND_BLOCK}. התנועה נשארת נגישה בכספים ובעמוד הגבייה עם כל פרטיה והיסטורייתה.
+        </div>
+      )}
+
       <div className="card text-sm space-y-1">
         <p>שיוך מצביע על הכנסה שכבר קיימת בכספים. הוא <b>אינו יוצר הכנסה נוספת</b>, אינו משנה את סכום ההכנסה, תאריך הקבלה או התיאור שלה, ואינו משנה את יתרת הקופה.</p>
         <p className="text-gray-600">הכנסה אחת יכולה לכסות כמה חודשים או דירות, ועד לסכומה בלבד.</p>
@@ -108,6 +127,21 @@ export default async function AllocatePage({ searchParams }: { searchParams: { m
       </div>
 
       <AllocationForm key={mode} mode={mode} sources={sources} apartments={apartments} charges={charges} months={months} initial={initial} />
+
+      {refunds.length > 0 && (
+        <section className="card space-y-2">
+          <h2 className="font-bold">החזרים מליבנה 4</h2>
+          <p className="text-sm text-gray-600">{LIVNA4_REFUND_NOTE}: אינם מוצעים לשיוך לדירה, בדיוק כמו בעמוד הגבייה.</p>
+          <ul className="text-sm divide-y divide-gray-100">
+            {refunds.map((s) => (
+              <li key={s.id} className="py-1.5 flex items-center justify-between gap-2">
+                <span className="text-gray-700">{s.description ?? "ללא תיאור"} · {new Date(s.date).toLocaleDateString("he-IL")}</span>
+                <span className="font-semibold tabular-nums">{ils(s.amount)}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section className="card space-y-3">
         <h2 className="font-bold">שיוכים שנשמרו</h2>
