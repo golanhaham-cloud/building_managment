@@ -62,7 +62,8 @@ export default async function FinancesPage({ searchParams }: { searchParams: Rec
   const periodLabel = monthMode ? `${monthName(Number(filters.month))} ${filters.year}` : filters.year ? `שנת ${filters.year}` : "כל התקופה";
   // מסנני משתמש מעבר לתקופה (חיפוש/סוג/קטגוריה/דירה) - שולטים בפתיחת פאנל הסינון ובניסוח הסיכום.
   const userFiltered = !!(filters.q || filters.type !== "all" || filters.cat || filters.apt);
-  const userFilterCount = [filters.q, filters.type !== "all", filters.cat, filters.apt].filter(Boolean).length;
+  // הספירה לתג ליד "סינון נוסף" אינה כוללת את החיפוש - הוא תמיד גלוי.
+  const advFilterCount = [filters.type !== "all", filters.cat, filters.apt].filter(Boolean).length;
 
   const tx = filterTransactions(allRows as TxRow[], filters, allocApts) as any[];
   const sum = summarize(tx);
@@ -255,7 +256,7 @@ export default async function FinancesPage({ searchParams }: { searchParams: Rec
         {/* שאר המסננים מכונסים */}
         <details open={userFiltered && !filters.q} className="group">
           <summary className="cursor-pointer inline-flex items-center gap-2 min-h-[44px] text-sm font-semibold text-brand-700" data-action="toggle-filter">
-            סינון נוסף{userFiltered ? ` (${userFilterCount} פעילים)` : ""}
+            סינון נוסף{advFilterCount ? ` (${advFilterCount} פעילים)` : ""}
           </summary>
           <form method="get" action="/finances" className="space-y-2 mt-2" data-form="tx-filter">
             {hiddenPeriod}
