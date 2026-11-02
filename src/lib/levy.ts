@@ -12,6 +12,7 @@ export type LevyAlloc = {
   id: string;
   amount: number; // ש"ח, כפי שנשמר במסד
   apartment_id: string | null; // שיוך מובנה לדירה (שיוכים חדשים)
+  purpose: string | null; // המטרה כפי שנרשמה; רק LEVY_PURPOSE בדיוק נספר בסיכום
   basis_note: string | null;
   date: string | null; // תאריך קבלת ההכנסה המקורית
   created_at: string | null;
@@ -39,7 +40,8 @@ export function levyState(paidAg: number): LevyState {
 
 export type LevyItem = { id: string; amount: number; date: string | null; via: "structured" | "note"; note: string | null };
 export type LevyRow = { apartment_id: string; number: string; paidAg: number; items: LevyItem[] };
-export type LevySummary = { rows: LevyRow[]; unassigned: LevyItem[]; totalAg: number };
+export type OtherPurpose = { purpose: string; count: number; totalAg: number; items: { id: string; amount: number; date: string | null; note: string | null }[] };
+export type LevySummary = { rows: LevyRow[]; unassigned: LevyItem[]; totalAg: number; otherPurposes: OtherPurpose[] };
 
 // צבירה לפי דירה. שיוך מובנה (apartment_id) גובר על זיהוי מההערה. שיוך שלא נמצאה לו דירה
 // מופיע ב-unassigned ועדיין נספר בסך "נגבה עד כה", כדי שהסכומים יסתדרו תמיד.
@@ -48,8 +50,19 @@ export function summarizeLevy(apartments: { id: string; number: string }[], allo
   const byNumber = new Map(apartments.map((a) => [String(Number(a.number)), a]));
   const itemsById = new Map<string, LevyItem[]>();
   const unassigned: LevyItem[] = [];
+  const other = new Map<string, OtherPurpose>();
   let totalAg = 0;
   for (const a of allocs) {
+    // מטרה אחרת (למשל כתיב ישן "שיפור מראה הבניין"): לא נספרת בסיכום, אבל מוצגת בנפרד כדי שלא תיעלם.
+    if (a.purpose !== LEVY_PURPOSE) {
+      const key = (a.purpose ?? "").trim() || "(ללא מטרה)";
+      const g = other.get(key) ?? { purpose: key, count: 0, totalAg: 0, items: [] };
+      g.count += 1;
+      g.totalAg += toAg(a.amount);
+      g.items.push({ id: a.id, amount: a.amount, date: a.date, note: a.basis_note ?? null });
+      other.set(key, g);
+      continue;
+    }
     totalAg += toAg(a.amount);
     let apt = a.apartment_id ? byId.get(a.apartment_id) : undefined;
     let via: LevyItem["via"] = "structured";
@@ -71,5 +84,6 @@ export function summarizeLevy(apartments: { id: string; number: string }[], allo
     const items = (itemsById.get(a.id) ?? []).sort((x, y) => String(x.date).localeCompare(String(y.date)));
     return { apartment_id: a.id, number: a.number, paidAg: items.reduce((s, i) => s + toAg(i.amount), 0), items };
   });
-  return { rows, unassigned, totalAg };
+  const otherPurposes = [...other.values()].sort((a, b) => b.totalAg - a.totalAg);
+  return { rows, unassigned, totalAg, otherPurposes };
 }

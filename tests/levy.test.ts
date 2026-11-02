@@ -19,7 +19,7 @@ ok("over 500 is still full", levyState(LEVY_TARGET_AG + 10000) === "full");
 
 // צבירה: מובנה גובר על הערה; חסר דירה נספר בסך הכל ומוצג בנפרד
 const apts = Array.from({ length: 19 }, (_, i) => ({ id: `a${i + 1}`, number: String(i + 1) }));
-const al = (o: Partial<LevyAlloc>): LevyAlloc => ({ id: Math.random().toString(36).slice(2), amount: 500, apartment_id: null, basis_note: null, date: "2026-10-01", created_at: null, ...o });
+const al = (o: Partial<LevyAlloc>): LevyAlloc => ({ id: Math.random().toString(36).slice(2), amount: 500, apartment_id: null, purpose: "שיפור הבניין", basis_note: null, date: "2026-10-01", created_at: null, ...o });
 const s = summarizeLevy(apts, [
   al({ apartment_id: "a9", basis_note: "דירה 15 בהערה אבל מובנה גובר" }),   // דירה 9 מובנית
   al({ amount: 251, basis_note: "אושר: דירה 9 - חלק ראשון" }),             // דירה 9 דרך הערה
@@ -36,6 +36,12 @@ ok("apartment without payments has no record", s.rows.find((r) => r.number === "
 ok("unidentified allocation is unassigned but counted", s.unassigned.length === 1 && s.unassigned[0].amount === 100);
 ok("total always adds up", s.totalAg === 50000 + 25100 + 50000 + 10000 && s.totalAg === s.rows.reduce((x, r) => x + r.paidAg, 0) + s.unassigned.reduce((x, i) => x + Math.round(i.amount * 100), 0));
 ok("purpose constant is the canonical string", LEVY_PURPOSE === "שיפור הבניין");
+
+// מטרה אחרת: לא נספרת, מוצגת בנפרד
+const s2 = summarizeLevy(apts, [al({}), al({ amount: 500, purpose: "שיפור מראה הבניין", basis_note: "דירה 1" })]);
+ok("other purpose is not counted in the levy total", s2.totalAg === 50000);
+ok("other purpose is grouped separately", s2.otherPurposes.length === 1 && s2.otherPurposes[0].purpose === "שיפור מראה הבניין" && s2.otherPurposes[0].totalAg === 50000);
+ok("other purpose does not land on its noted apartment", s2.rows.find((r) => r.number === "1")?.paidAg === 0);
 
 console.log(fails ? `${fails} FAILED` : "all passed");
 if (fails) process.exit(1);
