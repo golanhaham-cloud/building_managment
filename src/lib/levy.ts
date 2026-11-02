@@ -6,6 +6,10 @@
 import { toAg } from "./allocations";
 
 export const LEVY_PURPOSE = "שיפור הבניין";
+// ניסוח ישן של אותה מטרה, בשיוך אחד קיים (דירה 1, 23.9.2026). נספר באותה גבייה בדיוק כמו הניסוח
+// הנוכחי - אותו תשלום, אותה מטרה. הניסוח המקורי נשמר ומוצג ליד השיוך. לא להוסיף ניסוחים בלי אימות.
+export const LEVY_PURPOSE_LEGACY = "שיפור מראה הבניין";
+export const LEVY_PURPOSES: readonly string[] = [LEVY_PURPOSE, LEVY_PURPOSE_LEGACY];
 export const LEVY_TARGET_AG = 50000; // 500 ש"ח באגורות
 
 export type LevyAlloc = {
@@ -38,7 +42,7 @@ export function levyState(paidAg: number): LevyState {
   return paidAg >= LEVY_TARGET_AG ? "full" : "partial";
 }
 
-export type LevyItem = { id: string; amount: number; date: string | null; via: "structured" | "note"; note: string | null };
+export type LevyItem = { id: string; amount: number; date: string | null; via: "structured" | "note"; note: string | null; purpose: string | null };
 export type LevyRow = { apartment_id: string; number: string; paidAg: number; items: LevyItem[] };
 export type OtherPurpose = { purpose: string; count: number; totalAg: number; items: { id: string; amount: number; date: string | null; note: string | null }[] };
 export type LevySummary = { rows: LevyRow[]; unassigned: LevyItem[]; totalAg: number; otherPurposes: OtherPurpose[] };
@@ -53,8 +57,8 @@ export function summarizeLevy(apartments: { id: string; number: string }[], allo
   const other = new Map<string, OtherPurpose>();
   let totalAg = 0;
   for (const a of allocs) {
-    // מטרה אחרת (למשל כתיב ישן "שיפור מראה הבניין"): לא נספרת בסיכום, אבל מוצגת בנפרד כדי שלא תיעלם.
-    if (a.purpose !== LEVY_PURPOSE) {
+    // מטרה אחרת (לא הניסוח הנוכחי ולא הישן המאומת): לא נספרת בסיכום, אבל מוצגת בנפרד כדי שלא תיעלם.
+    if (!LEVY_PURPOSES.includes(a.purpose ?? "")) {
       const key = (a.purpose ?? "").trim() || "(ללא מטרה)";
       const g = other.get(key) ?? { purpose: key, count: 0, totalAg: 0, items: [] };
       g.count += 1;
@@ -71,7 +75,7 @@ export function summarizeLevy(apartments: { id: string; number: string }[], allo
       apt = num ? byNumber.get(num) : undefined;
       via = "note";
     }
-    const item: LevyItem = { id: a.id, amount: a.amount, date: a.date, via, note: a.basis_note ?? null };
+    const item: LevyItem = { id: a.id, amount: a.amount, date: a.date, via, note: a.basis_note ?? null, purpose: a.purpose ?? null };
     if (!apt) {
       unassigned.push(item);
       continue;

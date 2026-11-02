@@ -1,4 +1,4 @@
-import { apartmentFromNote, levyState, summarizeLevy, LEVY_TARGET_AG, LEVY_PURPOSE, type LevyAlloc } from "../src/lib/levy";
+import { apartmentFromNote, levyState, summarizeLevy, LEVY_TARGET_AG, LEVY_PURPOSE, LEVY_PURPOSE_LEGACY, type LevyAlloc } from "../src/lib/levy";
 
 let fails = 0;
 function ok(n: string, c: boolean) { console.log((c ? "ok  " : "FAIL") + " " + n); if (!c) fails++; }
@@ -37,11 +37,17 @@ ok("unidentified allocation is unassigned but counted", s.unassigned.length === 
 ok("total always adds up", s.totalAg === 50000 + 25100 + 50000 + 10000 && s.totalAg === s.rows.reduce((x, r) => x + r.paidAg, 0) + s.unassigned.reduce((x, i) => x + Math.round(i.amount * 100), 0));
 ok("purpose constant is the canonical string", LEVY_PURPOSE === "שיפור הבניין");
 
-// מטרה אחרת: לא נספרת, מוצגת בנפרד
-const s2 = summarizeLevy(apts, [al({}), al({ amount: 500, purpose: "שיפור מראה הבניין", basis_note: "דירה 1" })]);
-ok("other purpose is not counted in the levy total", s2.totalAg === 50000);
-ok("other purpose is grouped separately", s2.otherPurposes.length === 1 && s2.otherPurposes[0].purpose === "שיפור מראה הבניין" && s2.otherPurposes[0].totalAg === 50000);
-ok("other purpose does not land on its noted apartment", s2.rows.find((r) => r.number === "1")?.paidAg === 0);
+// ניסוח ישן מאומת: נספר באותה גבייה ונשמר עם תווית המטרה המקורית
+const s2 = summarizeLevy(apts, [al({}), al({ amount: 500, purpose: LEVY_PURPOSE_LEGACY, basis_note: "דירה 1" })]);
+ok("legacy wording counts in the levy total", s2.totalAg === 100000);
+ok("legacy wording lands on its noted apartment", s2.rows.find((r) => r.number === "1")?.paidAg === 50000 && levyState(s2.rows.find((r) => r.number === "1")!.paidAg) === "full");
+ok("legacy item keeps its original purpose label", s2.rows.find((r) => r.number === "1")?.items[0]?.purpose === LEVY_PURPOSE_LEGACY);
+ok("legacy wording is not in other-purposes", s2.otherPurposes.length === 0);
+
+// מטרה אחרת באמת: לא נספרת, מוצגת בנפרד
+const s3 = summarizeLevy(apts, [al({}), al({ amount: 200, purpose: "תרומה לגינה" })]);
+ok("unrelated purpose is not counted", s3.totalAg === 50000);
+ok("unrelated purpose is grouped separately", s3.otherPurposes.length === 1 && s3.otherPurposes[0].purpose === "תרומה לגינה" && s3.otherPurposes[0].totalAg === 20000);
 
 console.log(fails ? `${fails} FAILED` : "all passed");
 if (fails) process.exit(1);

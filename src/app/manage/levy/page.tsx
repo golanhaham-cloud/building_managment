@@ -3,7 +3,7 @@ import { getCurrentAppUser } from "@/lib/current-user";
 import { peopleByApartment, type DirectoryPerson } from "@/lib/apartment-people";
 import { fromAg } from "@/lib/allocations";
 import { ils } from "@/components/ui";
-import { LEVY_PURPOSE, LEVY_TARGET_AG, LEVY_STATE_LABELS, levyState, summarizeLevy, type LevyAlloc } from "@/lib/levy";
+import { LEVY_PURPOSE, LEVY_PURPOSE_LEGACY, LEVY_TARGET_AG, LEVY_STATE_LABELS, levyState, summarizeLevy, type LevyAlloc } from "@/lib/levy";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -111,7 +111,7 @@ export default async function LevyPage() {
                   <ul className="mt-1 text-xs text-gray-600 space-y-0.5">
                     {r.items.map((it) => (
                       <li key={it.id} className="tabular-nums">
-                        {ils(it.amount)} · התקבל {dateHe(it.date)}{it.via === "note" ? " · שויך לדירה לפי ההערה" : ""}{it.note ? ` · ${it.note}` : ""}
+                        {ils(it.amount)} · התקבל {dateHe(it.date)}{it.via === "note" ? " · שויך לדירה לפי ההערה" : ""}{it.purpose && it.purpose !== LEVY_PURPOSE ? ` · נרשם במטרה: "${it.purpose}"` : ""}{it.note ? ` · ${it.note}` : ""}
                       </li>
                     ))}
                   </ul>
@@ -156,7 +156,7 @@ export default async function LevyPage() {
         </section>
       )}
 
-      <p className="text-xs text-gray-500">מקור הנתונים: שיוכי ״מטרה מיוחדת״ עם המטרה ״{LEVY_PURPOSE}״ בלבד. שיוכים שנשמרו בלי דירה מזוהים לפי ״דירה N״ בהערת השיוך. דמי ועד חודשיים מוצגים ב<Link href="/manage/collection" className="text-brand-700">מצב גבייה וחובות</Link>.</p>
+      <p className="text-xs text-gray-500">מקור הנתונים: שיוכי ״מטרה מיוחדת״ עם המטרה ״{LEVY_PURPOSE}״, וכן שיוך אחד שנרשם בניסוח הישן ״{LEVY_PURPOSE_LEGACY}״ (מסומן ליד הדירה). שיוכים שנשמרו בלי דירה מזוהים לפי ״דירה N״ בהערת השיוך. דמי ועד חודשיים מוצגים ב<Link href="/manage/collection" className="text-brand-700">מצב גבייה וחובות</Link>.</p>
     </div>
   );
 }
