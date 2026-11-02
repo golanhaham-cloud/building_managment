@@ -87,6 +87,11 @@ export default async function PaymentsPage({ searchParams }: { searchParams: { y
           <span>שיוך הכנסה קיימת לדירה ולחודשים</span><span aria-hidden="true">←</span>
         </Link>
       )}
+      {isAdmin && (
+        <Link href="/manage/levy" className="card flex items-center justify-between min-h-[44px] text-sm font-semibold text-brand-700">
+          <span>שיפור הבניין - מצב גביית ה־500 ₪</span><span aria-hidden="true">←</span>
+        </Link>
+      )}
 
       <div className="flex items-center justify-between card py-3">
         <Link href={`/payments?year=${prev.year}&month=${prev.month}`} className="text-brand-700 inline-flex items-center min-h-[44px]">→ חודש קודם</Link>

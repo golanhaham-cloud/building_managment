@@ -135,7 +135,7 @@ export default function AllocationForm({ mode, sources, apartments, charges, mon
               <legend className="px-1 text-sm font-semibold">שיוך {i + 1}</legend>
               <div className="flex gap-2">
                 {(["fee", "special"] as const).map((k) => (
-                  <button key={k} type="button" aria-pressed={r.kind === k} onClick={() => setRows((rs) => rs.map((x) => x.key !== r.key ? x : { ...x, kind: k, ...(k === "special" ? { apartment_id: "", apartment_basis: "" as const, months_basis: "" as const, amount: x.amount || (availableAfterAg(availableAg, rs.filter((y) => y.key !== x.key)) > 0 ? String(fromAg(availableAfterAg(availableAg, rs.filter((y) => y.key !== x.key)))) : "") } : {}) }))}
+                  <button key={k} type="button" aria-pressed={r.kind === k} onClick={() => setRows((rs) => rs.map((x) => x.key !== r.key ? x : { ...x, kind: k, ...(k === "special" ? { months_basis: "" as const, amount: x.amount || (availableAfterAg(availableAg, rs.filter((y) => y.key !== x.key)) > 0 ? String(fromAg(availableAfterAg(availableAg, rs.filter((y) => y.key !== x.key)))) : "") } : {}) }))}
                     className={`flex-1 rounded-lg border text-sm min-h-[44px] ${r.kind === k ? "border-brand-600 bg-brand-50 font-semibold" : "border-gray-300"}`}>
                     {k === "fee" ? "דמי ועד" : "מטרה מיוחדת"}
                   </button>
@@ -168,11 +168,31 @@ export default function AllocationForm({ mode, sources, apartments, charges, mon
                   )}
                 </>
               ) : (
-                <div>
-                  <label className={lbl}>מטרה מיוחדת (אינה דמי ועד)</label>
-                  <input aria-label="מטרה מיוחדת" className={inp} placeholder="למשל: שיפור מראה הבניין" value={r.purpose} onChange={(e) => patch(r.key, { purpose: e.target.value })} />
-                  <p className="text-xs text-gray-500 mt-1">לא מכסה חיוב חודשי ולא משנה סטטוס של חודש. הסכום נספר פעם אחת בלבד בכספים.</p>
-                </div>
+                <>
+                  <div>
+                    <label className={lbl}>מטרה מיוחדת (אינה דמי ועד)</label>
+                    <input aria-label="מטרה מיוחדת" className={inp} placeholder="למשל: שיפור הבניין" value={r.purpose} onChange={(e) => patch(r.key, { purpose: e.target.value })} />
+                    <p className="text-xs text-gray-500 mt-1">לא מכסה חיוב חודשי ולא משנה סטטוס של חודש. הסכום נספר פעם אחת בלבד בכספים.</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className={lbl}>דירה (אופציונלי)</label>
+                      <select aria-label="דירה למטרה המיוחדת" className={sel} value={r.apartment_id} onChange={(e) => patch(r.key, { apartment_id: e.target.value })}>
+                        <option value="">ללא דירה</option>
+                        {apartments.map((a) => <option key={a.id} value={a.id}>דירה {a.number} (קומה {a.floor})</option>)}
+                      </select>
+                    </div>
+                    {r.apartment_id && (
+                      <div>
+                        <label className={lbl}>בסיס לזהות הדירה</label>
+                        <select aria-label="בסיס לזהות הדירה" className={sel} value={r.apartment_basis} onChange={(e) => patch(r.key, { apartment_basis: e.target.value as Basis })}>
+                          <option value="">בחר בסיס</option>{BASES.map((b) => <option key={b} value={b}>{BASIS_LABELS[b]}</option>)}
+                        </select>
+                      </div>
+                    )}
+                  </div>
+                  {r.apartment_id && <p className="text-xs text-gray-500">הדירה נשמרת עם השיוך ומוצגת במעקב הגבייה לפי דירה (למשל "שיפור הבניין"). אין שינוי בחיוב החודשי של הדירה.</p>}
+                </>
               )}
               <div>
                 <label className={lbl}>סכום לשיוך</label>

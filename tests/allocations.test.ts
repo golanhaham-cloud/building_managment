@@ -20,7 +20,13 @@ const sp = row({ kind: "special", apartment_id: "", apartment_basis: "", months_
 ok("special-purpose row valid without month/apartment", validateRows([sp], toAg(500)) === null);
 ok("special purpose needs a purpose", validateRows([{ ...sp, purpose: " " }], toAg(500)) !== null);
 const items = toRpcItems([sp]);
-ok("special item carries no month/apartment", items[0].kind === "special" && !("month" in items[0]) && !("apartment_id" in items[0]));
+ok("special item carries no month, apartment null when not chosen", items[0].kind === "special" && !("month" in items[0]) && (items[0] as any).apartment_id === null && (items[0] as any).apartment_basis === null);
+const spApt = { ...sp, apartment_id: "a9", apartment_basis: "explicit" as const };
+ok("special with apartment but no basis is rejected", validateRows([{ ...spApt, apartment_basis: "" }], toAg(500)) !== null);
+ok("special with apartment and basis is valid", validateRows([spApt], toAg(500)) === null);
+const spAptItem: any = toRpcItems([spApt])[0];
+ok("special item carries apartment and basis", spAptItem.apartment_id === "a9" && spAptItem.apartment_basis === "explicit" && !("month" in spAptItem));
+ok("special basis dropped when no apartment chosen", (toRpcItems([{ ...sp, apartment_basis: "explicit" }])[0] as any).apartment_basis === null);
 
 // תשלום חלקי
 const p200 = monthProgress(290, 200);

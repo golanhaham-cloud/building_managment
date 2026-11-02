@@ -57,6 +57,7 @@ export function validateRows(rows: AllocRow[], availableAg: number): string | nu
       seen.add(k);
     } else {
       if (r.purpose.trim().length < 2) return "יש להזין את המטרה המיוחדת";
+      if (r.apartment_id && !r.apartment_basis) return "יש לבחור בסיס לזהות הדירה";
     }
     const needs = basisNeedsNote(r.apartment_basis) || (r.kind === "fee" && basisNeedsNote(r.months_basis));
     if (needs && r.basis_note.trim().length < 3) return "בשיוך משוער או שטרם הובהר יש להזין הערה";
@@ -89,7 +90,15 @@ export function toRpcItems(rows: AllocRow[]) {
           months_basis: r.months_basis,
           basis_note: r.basis_note.trim() || null,
         }
-      : { kind: "special", purpose: r.purpose.trim(), amount: r.amount.trim(), basis_note: r.basis_note.trim() || null },
+      : {
+          kind: "special",
+          purpose: r.purpose.trim(),
+          amount: r.amount.trim(),
+          // דירה אופציונלית למטרה מיוחדת (למשל מעקב גביית "שיפור הבניין" לפי דירה). המסד דורש בסיס כשנבחרה דירה.
+          apartment_id: r.apartment_id || null,
+          apartment_basis: r.apartment_id ? r.apartment_basis : null,
+          basis_note: r.basis_note.trim() || null,
+        },
   );
 }
 

@@ -152,7 +152,7 @@ export default async function AllocatePage({ searchParams }: { searchParams: { m
             <div key={a.id} className="border-t border-gray-100 pt-3 first:border-0 first:pt-0">
               <div className={voided ? "opacity-60" : ""}>
                 <div className={`font-semibold ${voided ? "line-through" : ""}`}>
-                  {ils(a.amount)} · {a.kind === "fee" ? `דמי ועד · דירה ${a.apartments?.apartment_number} · ${monthName(a.fee_month)} ${a.fee_year}` : `מטרה מיוחדת: ${a.purpose}`}
+                  {ils(a.amount)} · {a.kind === "fee" ? `דמי ועד · דירה ${a.apartments?.apartment_number} · ${monthName(a.fee_month)} ${a.fee_year}` : `מטרה מיוחדת: ${a.purpose}${a.apartments ? ` · דירה ${a.apartments.apartment_number}` : ""}`}
                 </div>
                 <div className="text-xs text-gray-600">
                   מקור: {ils(a.transactions?.amount)} שהתקבל ב־{a.transactions?.date ? new Date(a.transactions.date).toLocaleDateString("he-IL") : "—"}{a.transactions?.description ? ` · ${a.transactions.description}` : ""}

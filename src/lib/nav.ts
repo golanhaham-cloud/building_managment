@@ -16,7 +16,7 @@ const under = (p: string, base: string) => p === base || p.startsWith(base + "/"
 export function activeTab(pathname: string): TabId | null {
   const p = pathname.split("?")[0].replace(/\/+$/, "") || "/";
   if (under(p, "/dashboard")) return "home";
-  if (["/finances", "/payments", "/forecast", "/manage/fees", "/manage/collection", "/manage/opening-balance", "/manage/suppliers"].some((b) => under(p, b))) return "finance";
+  if (["/finances", "/payments", "/forecast", "/manage/fees", "/manage/collection", "/manage/levy", "/manage/opening-balance", "/manage/suppliers"].some((b) => under(p, b))) return "finance";
   if (under(p, "/apartments") || under(p, "/manage/apartments")) return "residents";
   if (under(p, "/requests")) return "issues";
   if (under(p, "/more") || under(p, "/manage") || ["/projects", "/announcements", "/account", "/changelog"].some((b) => under(p, b))) return "more";
@@ -34,6 +34,7 @@ export const MORE_GROUPS: MoreGroup[] = [
       { href: "/payments", icon: "💳", title: "תשלומי ועד", desc: "רישום תשלומים שהתקבלו" },
       { href: "/payments/allocate", icon: "🔗", title: "שיוך הכנסה לדירה ולחודשים", desc: "שיוך הכנסה קיימת, בלי לספור פעמיים" },
       { href: "/manage/collection", icon: "📋", title: "מצב גבייה וחובות", desc: "פערים, הפחתות וחובות מאומתים לפי דירה וחודש" },
+      { href: "/manage/levy", icon: "🏗️", title: "שיפור הבניין - גבייה", desc: "מעקב אחר התשלום החד-פעמי של 500 ₪ לדירה" },
       { href: "/finances", icon: "💰", title: "הכנסות והוצאות", desc: "הוספה, תיקון וביטול עם סיבה" },
       { href: "/forecast", icon: "📈", title: "הוצאות קבועות ותחזית", desc: "אומדן חודשי, הנחות ותרחיש (לא יתרת בנק)" },
       { href: "/manage/opening-balance", icon: "🏁", title: "יתרת פתיחה", desc: "יתרה ותאריך תחילת רישום (לא תנועת הכנסה)" },

@@ -9,7 +9,7 @@ assert.deepEqual(TABS.map((t) => t.href), ["/dashboard", "/finances", "/apartmen
 const tabHrefs = TABS.map((t) => t.href);
 const adminHrefs = new Set([...tabHrefs, ...moreGroupsFor(true).flatMap((g) => g.items.map((i) => i.href))]);
 const oldManage = ["/manage/fees", "/payments", "/finances", "/forecast", "/manage/opening-balance", "/finances/import", "/manage/suppliers", "/manage/apartments", "/requests", "/projects", "/announcements", "/manage/tasks", "/manage/documents", "/manage/audit", "/manage/deleted", "/manage/join-requests", "/manage/users", "/account", "/changelog"];
-const newThisRelease = ["/manage/collection", "/payments/allocate"];
+const newThisRelease = ["/manage/collection", "/payments/allocate", "/manage/levy"];
 const oldAdminNav = ["/dashboard", "/finances", "/forecast", "/apartments", "/requests", "/manage"];
 for (const h of [...oldManage, ...newThisRelease, ...oldAdminNav.filter((h) => h !== "/manage")]) assert.ok(adminHrefs.has(h), `ועד: חסר ${h}`);
 
@@ -27,7 +27,7 @@ assert.deepEqual(committee.items.map((i) => i.href), ["/manage/tasks", "/manage/
 // 4. סימון לשונית פעילה, כולל עמודים פנימיים
 const cases: [string, string | null][] = [
   ["/dashboard", "home"], ["/finances", "finance"], ["/finances/import", "finance"], ["/payments", "finance"], ["/payments/allocate", "finance"],
-  ["/forecast", "finance"], ["/manage/fees", "finance"], ["/manage/collection", "finance"], ["/manage/opening-balance", "finance"], ["/manage/suppliers", "finance"],
+  ["/forecast", "finance"], ["/manage/fees", "finance"], ["/manage/collection", "finance"], ["/manage/levy", "finance"], ["/manage/opening-balance", "finance"], ["/manage/suppliers", "finance"],
   ["/apartments", "residents"], ["/manage/apartments", "residents"], ["/manage/apartments/abc", "residents"],
   ["/requests", "issues"], ["/requests/123", "issues"],
   ["/more", "more"], ["/manage", "more"], ["/manage/tasks", "more"], ["/manage/documents", "more"], ["/manage/users", "more"], ["/manage/join-requests", "more"],
