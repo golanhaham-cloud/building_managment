@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
   const [{ data: rows }, { data: balanceRow }] = await Promise.all([
     supabase
       .from("transactions")
-      .select("type, date, amount, description, categories(name), suppliers(name)")
+      .select("id, type, date, amount, description, categories(name), suppliers(name)")
       .eq("building_id", appUser.building_id)
       .is("voided_at", null)
       .order("date"),
@@ -44,17 +44,41 @@ export async function GET(req: NextRequest) {
   const cur = (balanceRow as any)?.current_balance;
   const balanceEndAg = cur == null ? null : ag(cur) - netAfterAg;
 
-  const groups = new Map<string, ReportIncomeGroup>();
+  // שיוכים פעילים של תקבולי החודש: הבסיס המוסמך לסיווג תקבול כדמי ועד / מטרה מיוחדת,
+  // גם כשלתנועה אין קטגוריה. סכום התנועה עצמה לא משתנה; זו תצוגת סיכום בלבד.
+  const incomeIds = inMonth.filter((t) => t.type === "income").map((t) => t.id);
+  const { data: allocs } = incomeIds.length
+    ? await supabase.from("payment_allocations").select("transaction_id, amount, kind, purpose").eq("building_id", appUser.building_id).is("voided_at", null).in("transaction_id", incomeIds)
+    : { data: [] as any[] };
+  const feeAg = new Map<string, number>(), specialAg = new Map<string, number>();
+  for (const a of (allocs ?? []) as any[]) {
+    const m = a.kind === "special" ? specialAg : feeAg;
+    m.set(a.transaction_id, (m.get(a.transaction_id) ?? 0) + ag(a.amount));
+  }
+
+  const otherGroups = new Map<string, ReportIncomeGroup>();
   const expenses: ReportExpense[] = [];
-  let vaadAg = 0, vaadCount = 0, incomeTotalAg = 0, expenseTotalAg = 0;
+  let incomeTotalAg = 0, expenseTotalAg = 0;
+  let residentTotalAg = 0, residentCount = 0, duesAg = 0, levyAg = 0, unallocatedAg = 0;
   for (const t of inMonth) {
     if (t.type === "income") {
       const a = ag(t.amount);
       incomeTotalAg += a;
-      const name = t.categories?.name ?? "ללא קטגוריה";
-      const g = groups.get(name) ?? { name, totalAg: 0, count: 0 };
-      g.totalAg += a; g.count += 1; groups.set(name, g);
-      if (name === "ועד בית") { vaadAg += a; vaadCount += 1; }
+      const fee = feeAg.get(t.id) ?? 0;
+      const special = specialAg.get(t.id) ?? 0;
+      const cat = t.categories?.name ?? null;
+      const remainder = Math.max(0, a - fee - special);
+      const residentLinked = cat === "ועד בית" || fee + special > 0;
+      if (residentLinked) {
+        residentTotalAg += a; residentCount += 1;
+        levyAg += special;
+        duesAg += fee + (cat === "ועד בית" ? remainder : 0);
+        unallocatedAg += cat === "ועד בית" ? 0 : remainder;
+      } else {
+        const name = cat ?? "ללא קטגוריה";
+        const g = otherGroups.get(name) ?? { name, totalAg: 0, count: 0 };
+        g.totalAg += a; g.count += 1; otherGroups.set(name, g);
+      }
     } else if (t.type === "expense") {
       const a = ag(t.amount);
       expenseTotalAg += a;
@@ -67,17 +91,17 @@ export async function GET(req: NextRequest) {
       });
     }
   }
-  const incomeGroups = Array.from(groups.values()).sort((x, y) => y.totalAg - x.totalAg);
-
   const now = new Date();
   const data: MonthlyReportData = {
     monthLabel: `${monthName(month)} ${year}`,
     generatedLabel: `${now.getDate()}.${now.getMonth() + 1}.${now.getFullYear()}`,
     incomeTotalAg,
-    vaadAg,
-    vaadCount,
-    otherIncomeAg: incomeTotalAg - vaadAg,
-    incomeGroups,
+    residentTotalAg,
+    residentCount,
+    duesAg,
+    levyAg,
+    unallocatedAg,
+    otherGroups: Array.from(otherGroups.values()).sort((x, y) => y.totalAg - x.totalAg),
     expenses,
     expenseTotalAg,
     balanceEndAg,
