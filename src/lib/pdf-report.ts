@@ -59,10 +59,18 @@ export function buildMonthlyReportPdf(d: MonthlyReportData): Promise<Buffer> {
     doc.registerFont("bold", BOLD);
 
     // ציור שורה: שורות עם עברית - מילה-מילה בסדר חזותי; שורות LTR בלבד - ציור רגיל.
-    const drawLine = (t: string, x: number, y: number, w: number, align: "right" | "center" = "right") => {
+    const drawLine = (t: string, x: number, y: number, w: number, align: "right" | "center" = "right", maxW?: number) => {
       if (!HEB.test(t)) { doc.text(t, x, y, { width: w, align, lineBreak: false, ellipsis: true }); return; }
       const words = rtlWords(t);
       const spaceW = doc.widthOfString(" ");
+      const limit = maxW ?? w;
+      // קיצוץ לרוחב התא: מסירים מילים מקצה השורה החזותי (שמאל) ומוסיפים סימן השמטה.
+      while (words.length > 1) {
+        const tot = words.reduce((a, wd) => a + doc.widthOfString(wd), 0) + spaceW * (words.length - 1);
+        if (tot <= limit) break;
+        words.pop();
+        words[words.length - 1] = words[words.length - 1] + "…";
+      }
       const widths = words.map((word) => doc.widthOfString(word));
       const total = widths.reduce((a, b) => a + b, 0) + spaceW * (words.length - 1);
       let cx = align === "center" ? x + Math.max(0, (w - total) / 2) : x + w - total;
@@ -109,9 +117,9 @@ export function buildMonthlyReportPdf(d: MonthlyReportData): Promise<Buffer> {
     doc.font("bold").fontSize(13); right(`פירוט הוצאות (${d.expenses.length})`, L, y, R - L); y += 20;
     const cols = [
       { h: "תאריך", x: 480, w: 65 },
-      { h: "תיאור", x: 270, w: 205 },
-      { h: "קטגוריה", x: 185, w: 80 },
-      { h: "ספק", x: 115, w: 65 },
+      { h: "תיאור", x: 290, w: 185 },
+      { h: "קטגוריה", x: 215, w: 70 },
+      { h: "ספק", x: 115, w: 95 },
       { h: "סכום", x: L, w: 60 },
     ];
     const tableHead = () => {
