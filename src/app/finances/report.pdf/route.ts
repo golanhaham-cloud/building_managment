@@ -91,7 +91,7 @@ export async function GET(req: NextRequest) {
     },
   });
   } catch (e) {
-    // זמני: חשיפת שגיאת שרת לאבחון הדור (יוחזר להודעה כללית לפני פרסום סופי)
-    return new NextResponse("report error: " + String((e as Error)?.stack ?? e), { status: 500 });
+    console.error("monthly report pdf failed", e);
+    return new NextResponse("יצירת הדוח נכשלה", { status: 500 });
   }
 }
