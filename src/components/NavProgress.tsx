@@ -3,6 +3,7 @@
 import { useEffect, useRef, useSyncExternalStore } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { getServerSnapshot, getSnapshot, rsc, startNav, stopNav, subscribe } from "@/lib/nav-store";
+import { formNavKey } from "@/lib/nav-progress-utils";
 
 const SKIP_PREFIXES = ["/files/", "/auth/"]; // downloads / file gateway / auth redirects: not page loads
 
@@ -68,8 +69,9 @@ export default function NavProgress() {
     };
     const onSubmit = (e: SubmitEvent) => {
       const f = e.target as HTMLFormElement;
-      if (!(f instanceof HTMLFormElement) || (f.method || "get").toLowerCase() !== "get" || f.target) return;
-      startNav(f.action || window.location.href); // plain GET form = full page navigation
+      if (!(f instanceof HTMLFormElement)) return;
+      const k = formNavKey(f.method, f.target || null, f.action, window.location.href);
+      if (k) startNav(k); // plain GET form = full page navigation
     };
     const onPageShow = () => stopNav(); // back/forward cache restore
     document.addEventListener("click", onClick, true);
