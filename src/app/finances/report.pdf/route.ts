@@ -92,6 +92,7 @@ export async function GET(req: NextRequest) {
     }
   }
   const now = new Date();
+  const isCurrentMonth = now.getFullYear() === year && now.getMonth() + 1 === month;
   const data: MonthlyReportData = {
     monthLabel: `${monthName(month)} ${year}`,
     generatedLabel: `${now.getDate()}.${now.getMonth() + 1}.${now.getFullYear()}`,
@@ -105,6 +106,7 @@ export async function GET(req: NextRequest) {
     expenses,
     expenseTotalAg,
     balanceEndAg,
+    isCurrentMonth,
   };
   const pdf = await buildMonthlyReportPdf(data);
   return new NextResponse(new Uint8Array(pdf), {

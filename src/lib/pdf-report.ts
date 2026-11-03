@@ -17,7 +17,9 @@ export function ilsAg(a: number): string {
 
 const HEB = /[\u0590-\u05FF]/;
 const MIRROR: Record<string, string> = { "(": ")", ")": "(", "[": "]", "]": "[", "{": "}", "}": "{" };
-const mirrorParens = (w: string) => w.replace(/[()[\]{}]/g, (c) => MIRROR[c] ?? c);
+// סוגריים מופכים רק במילים עם עברית: מילה טהורה לטינית/ספרות מצוירת כפי שהיא (למשל "(3)"),
+// ואילו סוגריים במילה עברית עוברים היפוך כפול (שלנו + bidi של fontkit) וחוזרים לצורתם הנכונה.
+const mirrorParens = (w: string) => (HEB.test(w) ? w.replace(/[()[\]{}]/g, (c) => MIRROR[c] ?? c) : w);
 
 // סדר חזותי ברמת מילה לשורת RTL: היפוך סדר המילים + היפוך סוגריים, תוכן כל מילה נשאר.
 export function rtlWords(line: string): string[] {
@@ -40,6 +42,7 @@ export type MonthlyReportData = {
   expenses: ReportExpense[];
   expenseTotalAg: number;
   balanceEndAg: number | null;
+  isCurrentMonth: boolean; // בחודש השוטף היתרה היא "נכון להיום", לא "סוף חודש"
 };
 
 // הפונטים מוטמעים כ-base64 (fonts-data.ts) כי קבצי fs מה-repo אינם מובטחים ב-serverless.
@@ -117,7 +120,13 @@ export function buildMonthlyReportPdf(d: MonthlyReportData): Promise<Buffer> {
     sumRow("סה\"כ הוצאות", ilsAg(d.expenseTotalAg), true);
     hline(y - 6);
     sumRow("מאזן החודש (הכנסות פחות הוצאות)", ilsAg(d.incomeTotalAg - d.expenseTotalAg), true);
-    if (d.balanceEndAg != null) sumRow(`יתרה מחושבת בסוף ${d.monthLabel} (לפי הרישומים)`, ilsAg(d.balanceEndAg));
+    if (d.balanceEndAg != null) {
+      // בחודש השוטף: "נכון לתאריך הדוח" (התאריך המדויק בכותרת) - מילה מעורבת עברית+ספרות הייתה מתהפכת.
+      const balLabel = d.isCurrentMonth
+        ? `יתרה מחושבת נכון לתאריך הדוח (לפי הרישומים)`
+        : `יתרה מחושבת בסוף ${d.monthLabel} (לפי הרישומים)`;
+      sumRow(balLabel, ilsAg(d.balanceEndAg));
+    }
     y += 10;
 
     const pageBreak = (need: number) => {

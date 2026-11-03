@@ -24,6 +24,7 @@ async function main() {
     ],
     expenseTotalAg: 207574,
     balanceEndAg: 966748,
+    isCurrentMonth: true,
   };
   ok("income invariant holds", data.duesAg + data.levyAg + data.unallocatedAg + data.otherGroups.reduce((s, g) => s + g.totalAg, 0) === data.incomeTotalAg);
   const pdf = await buildMonthlyReportPdf(data);
