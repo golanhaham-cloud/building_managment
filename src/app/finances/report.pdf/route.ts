@@ -9,6 +9,7 @@ export const dynamic = "force-dynamic";
 // דוח PDF חודשי לדיירים: הכנסות בסיכום בלבד (ללא פרטי משלמים), הוצאות בפירוט.
 // גלוי לכל משתמש מחובר בבניין - נתוני הדוח מכילים פחות ממה שגלוי בעמוד הכספים עצמו.
 export async function GET(req: NextRequest) {
+  try {
   const supabase = createClient();
   const appUser = await getCurrentAppUser();
   if (!appUser) return new NextResponse("יש להתחבר", { status: 401 });
@@ -89,4 +90,8 @@ export async function GET(req: NextRequest) {
       "cache-control": "private, no-store",
     },
   });
+  } catch (e) {
+    // זמני: חשיפת שגיאת שרת לאבחון הדור (יוחזר להודעה כללית לפני פרסום סופי)
+    return new NextResponse("report error: " + String((e as Error)?.stack ?? e), { status: 500 });
+  }
 }
