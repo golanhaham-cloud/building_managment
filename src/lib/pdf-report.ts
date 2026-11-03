@@ -1,9 +1,9 @@
 // דוח PDF חודשי להצגה לדיירים: הכנסות בסיכום (ללא פרטי משלמים), הוצאות בפירוט.
 // pdfkit (fontkit) מסדר bidi בעצמו - מעבירים מחרוזות בסדר לוגי, עם גופן Alef מוטמע.
 // הבדיקות: tests/pdf-report.test.ts. אין כאן גישה למסד - הנתונים מוכנים ב-route.
-import path from "node:path";
 import PDFDocument from "pdfkit";
 import { monthName } from "../components/ui";
+import { ALEF_REG_B64, ALEF_BOLD_B64 } from "./fonts-data";
 
 export const ag = (n: number | string) => Math.round(Number(n) * 100);
 
@@ -29,9 +29,9 @@ export type MonthlyReportData = {
   balanceEndAg: number | null;
 };
 
-const FONT_DIR = path.join(process.cwd(), "assets", "fonts");
-const REG = path.join(FONT_DIR, "Alef-Regular.ttf");
-const BOLD = path.join(FONT_DIR, "Alef-Bold.ttf");
+// הפונטים מוטמעים כ-base64 (fonts-data.ts) כי קבצי fs מה-repo אינם מובטחים ב-serverless.
+const REG = Buffer.from(ALEF_REG_B64, "base64");
+const BOLD = Buffer.from(ALEF_BOLD_B64, "base64");
 const L = 50, R = 545; // גבולות התוכן בעמוד A4
 
 const INK = "#1f2937", GRAY = "#6b7280", LINE = "#d1d5db", ACCENT = "#0f766e";

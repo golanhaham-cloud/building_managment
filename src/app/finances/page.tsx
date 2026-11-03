@@ -208,11 +208,16 @@ export default async function FinancesPage({ searchParams }: { searchParams: Rec
           ) : (
             <div className="font-bold min-h-[44px] inline-flex items-center" data-v="period-label">{periodLabel}</div>
           )}
-          {monthMode ? (
-            <Link href={href({ year: "", month: "", period: "all", limit: "" })} className="inline-flex items-center min-h-[44px] text-sm text-brand-700 font-semibold" data-action="all-period">כל התקופה</Link>
-          ) : (
-            <Link href="/finances" className="inline-flex items-center min-h-[44px] text-sm text-brand-700 font-semibold" data-action="month-view">תצוגת חודש</Link>
-          )}
+          <div className="flex items-center gap-3">
+            {monthMode && (
+              <a href={`/finances/report.pdf?year=${yNum}&month=${mNum}`} className="inline-flex items-center min-h-[44px] text-sm text-brand-700 font-semibold" data-action="export-pdf">יצוא דוח PDF</a>
+            )}
+            {monthMode ? (
+              <Link href={href({ year: "", month: "", period: "all", limit: "" })} className="inline-flex items-center min-h-[44px] text-sm text-brand-700 font-semibold" data-action="all-period">כל התקופה</Link>
+            ) : (
+              <Link href="/finances" className="inline-flex items-center min-h-[44px] text-sm text-brand-700 font-semibold" data-action="month-view">תצוגת חודש</Link>
+            )}
+          </div>
         </div>
         <form method="get" action="/finances" className="flex items-end gap-2" data-form="period-jump">
           {hiddenFilters}
