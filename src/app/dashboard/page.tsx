@@ -71,11 +71,20 @@ export default async function DashboardPage() {
   const overdueTaskCount = (openTasks ?? []).filter((t: any) => t.due_date && t.due_date < today).length;
 
   // אותו מקור חישוב של מסך התשלומים: month_fee_overview (חיוב בסיס + חיובים נוספים − זיכויים).
-  const [{ data: overview }, { data: aptRows }] = await Promise.all([
+  const [{ data: overview }, { data: aptRows }, { data: directory }] = await Promise.all([
     supabase.rpc("month_fee_overview", { p_year: year, p_month: month }),
     supabase.from("apartments").select("id, apartment_number, floor").eq("building_id", buildingId),
+    supabase.rpc("get_resident_directory"),
   ]);
   const aptById = new Map((aptRows ?? []).map((a: any) => [a.id, a]));
+  // שמות הדיירים שמתגוררים בדירה (כמו בעמוד הדיירים): רק lives_here, עם סיומת לשוכרים.
+  const livingByApt = new Map<string, string[]>();
+  for (const r of (directory ?? []) as any[]) {
+    if (!r?.lives_here || !r?.apartment_id) continue;
+    const label = `${r.full_name}${r.ownership === "tenant" ? " (שוכר/ת)" : ""}`;
+    if (!livingByApt.has(r.apartment_id)) livingByApt.set(r.apartment_id, []);
+    livingByApt.get(r.apartment_id)!.push(label);
+  }
 
   const { data: thisMonthTx } = await supabase
     .from("transactions")
@@ -186,7 +195,12 @@ export default async function DashboardPage() {
                 const st = p.state;
                 return (
                   <div key={p.apartment_id} className="flex items-center justify-between gap-2 py-2 text-sm">
-                    <span>דירה {apt?.apartment_number} <span className="text-gray-500">(קומה {apt?.floor})</span></span>
+                    <span>
+                      דירה {apt?.apartment_number} <span className="text-gray-500">(קומה {apt?.floor})</span>
+                      {(livingByApt.get(p.apartment_id) ?? []).length > 0 && (
+                        <span className="block text-xs text-gray-500">{(livingByApt.get(p.apartment_id) ?? []).join(", ")}</span>
+                      )}
+                    </span>
                     <span className="flex items-center gap-2 text-end">
                       <span>
                         {st.label}
