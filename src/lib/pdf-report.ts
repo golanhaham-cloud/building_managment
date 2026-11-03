@@ -61,16 +61,28 @@ export function buildMonthlyReportPdf(d: MonthlyReportData): Promise<Buffer> {
     // ציור שורה: שורות עם עברית - מילה-מילה בסדר חזותי; שורות LTR בלבד - ציור רגיל.
     const drawLine = (t: string, x: number, y: number, w: number, align: "right" | "center" = "right", maxW?: number) => {
       if (!HEB.test(t)) { doc.text(t, x, y, { width: w, align, lineBreak: false, ellipsis: true }); return; }
-      const words = rtlWords(t);
       const spaceW = doc.widthOfString(" ");
       const limit = maxW ?? w;
-      // קיצוץ לרוחב התא: מסירים מילים מקצה השורה החזותי (שמאל) ומוסיפים סימן השמטה.
-      while (words.length > 1) {
-        const tot = words.reduce((a, wd) => a + doc.widthOfString(wd), 0) + spaceW * (words.length - 1);
-        if (tot <= limit) break;
-        words.pop();
-        words[words.length - 1] = words[words.length - 1] + "…";
+      // קיצוץ לרוחב התא: חותכים את המחרוזת הלוגית מסופה (הקצה השמאלי החזותי),
+      // מנקים סוגריים לא מאוזנים שנותרו מהחיתוך, ומוסיפים סימן השמטה.
+      const fits = (str: string) => {
+        const ws = rtlWords(str);
+        return ws.reduce((a, wd) => a + doc.widthOfString(wd), 0) + spaceW * (ws.length - 1);
+      };
+      if (fits(t) > limit) {
+        let cut = t;
+        while (cut.length > 1 && fits(cut + "…") > limit) cut = cut.slice(0, -1);
+        cut = cut.replace(/[\s(\[\]<>,;:\-–]+$/u, "");
+        for (const [o, c] of [["(", ")"], ["[", "]"], ["{", "}"]] as const) {
+          const opens = cut.split(o).length - 1, closes = cut.split(c).length - 1;
+          if (opens > closes) {
+            const idx = cut.lastIndexOf(o);
+            cut = cut.slice(0, idx) + cut.slice(idx + 1);
+          }
+        }
+        t = cut + "…";
       }
+      const words = rtlWords(t);
       const widths = words.map((word) => doc.widthOfString(word));
       const total = widths.reduce((a, b) => a + b, 0) + spaceW * (words.length - 1);
       let cx = align === "center" ? x + Math.max(0, (w - total) / 2) : x + w - total;
