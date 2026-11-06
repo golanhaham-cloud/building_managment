@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { VAAD_EMAIL } from "@/components/SiteCredit";
 
 export default function LoginPage() {
   return (
@@ -13,7 +14,7 @@ export default function LoginPage() {
 }
 
 const CLAIM_ERRORS: Record<string, string> = {
-  email_not_found: "המייל הזה לא רשום ברשימת הדיירים. פנה/י לוועד כדי שיעדכנו אותו.",
+  email_not_found: `המייל הזה לא רשום ברשימת הדיירים. פנה/י לוועד כדי שיעדכנו אותו: ${VAAD_EMAIL}`,
   bad_code: "קוד הבניין שגוי.",
   email_not_verified: "המייל עדיין לא אומת. אמת/י את המייל ונסה/י שוב.",
   no_session: "ההרשמה לא הושלמה, נסה/י להתחבר.",
