@@ -17,6 +17,7 @@ function Fields({ s }: { s?: any }) {
         <div><label className={lbl}>תחילת חוזה</label><input name="contract_start" type="date" defaultValue={s?.contract_start ?? ""} className={inp} /></div>
         <div><label className={lbl}>סיום חוזה</label><input name="contract_end" type="date" defaultValue={s?.contract_end ?? ""} className={inp} /></div>
       </div>
+      <textarea name="notes" defaultValue={s?.notes ?? ""} placeholder="הערות / פרטי תשלום (גלוי לוועד בלבד)" className={inp} rows={2} />
     </>
   );
 }
