@@ -353,6 +353,7 @@ export async function saveSupplier(_p: State, fd: FormData): Promise<State> {
       contract_start: s(fd, "contract_start") || null,
       contract_end: s(fd, "contract_end") || null,
       contract_url: s(fd, "contract_url") || null,
+      notes: s(fd, "notes") || null,
     };
     if (id) {
       const data = must(await supabase.from("suppliers").update({ ...payload, row_version: num(fd, "row_version") }).eq("id", id).eq("building_id", u.building_id).select("id"));
