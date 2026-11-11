@@ -24,7 +24,7 @@ function BasisBadge({ label, basis }: { label: string; basis: string | null }) {
   );
 }
 
-export default async function AllocatePage({ searchParams }: { searchParams: { mode?: string; apt?: string; year?: string; month?: string; tx?: string; done?: string } }) {
+export default async function AllocatePage({ searchParams }: { searchParams: { mode?: string; apt?: string; year?: string; month?: string; tx?: string; done?: string; alloc_apt?: string } }) {
   const appUser = await getCurrentAppUser();
   if (!appUser || appUser.role !== "admin") {
     return (
@@ -43,17 +43,22 @@ export default async function AllocatePage({ searchParams }: { searchParams: { m
     .sort((a: any, b: any) => Number(a.apartment_number) - Number(b.apartment_number))
     .map((a: any) => ({ id: a.id, number: String(a.apartment_number), floor: a.floor }));
   const aptIds = apartments.map((a) => a.id);
+  // סינון רשימת השיוכים לפי דירה: הרשימה מוגבלת ל־100 האחרונים, וסינון לפי דירה
+  // מאפשר להגיע גם לשיוכים ישנים (למשל כדי לבטל הקצאה על הכנסה ישנה).
+  const allocApt = aptIds.includes(searchParams.alloc_apt ?? "") ? searchParams.alloc_apt! : undefined;
+
+  let allocQ = supabase
+    .from("payment_allocations")
+    .select("id, kind, fee_year, fee_month, purpose, amount, apartment_basis, months_basis, basis_note, voided_at, void_reason, created_at, transactions:transaction_id(date, amount, description), apartments:apartment_id(apartment_number)")
+    .eq("building_id", appUser.building_id);
+  if (allocApt) allocQ = allocQ.eq("apartment_id", allocApt);
+  const allocQuery = allocQ.order("created_at", { ascending: false }).limit(100);
 
   const [{ data: src }, { data: mp }, { data: adj }, { data: allocs }] = await Promise.all([
     supabase.rpc("income_sources"),
     supabase.from("monthly_payments").select("apartment_id, year, month, amount_due, amount_paid").in("apartment_id", aptIds),
     supabase.from("fee_adjustments").select("apartment_id, year, month, amount").eq("building_id", appUser.building_id).is("voided_at", null),
-    supabase
-      .from("payment_allocations")
-      .select("id, kind, fee_year, fee_month, purpose, amount, apartment_basis, months_basis, basis_note, voided_at, void_reason, created_at, transactions:transaction_id(date, amount, description), apartments:apartment_id(apartment_number)")
-      .eq("building_id", appUser.building_id)
-      .order("created_at", { ascending: false })
-      .limit(100),
+    allocQuery,
   ]);
 
   const allSources: Source[] = (src ?? []).map((s: any) => ({
@@ -144,8 +149,19 @@ export default async function AllocatePage({ searchParams }: { searchParams: { m
       )}
 
       <section className="card space-y-3">
-        <h2 className="font-bold">שיוכים שנשמרו</h2>
-        {(allocs ?? []).length === 0 && <p className="text-sm text-gray-500">עדיין לא נשמרו שיוכים.</p>}
+        <h2 className="font-bold">שיוכים שנשמרו{allocApt ? ` · דירה ${apartments.find((a) => a.id === allocApt)?.number ?? ""}` : ""}</h2>
+        <form method="get" className="flex items-end gap-2" aria-label="סינון שיוכים לפי דירה">
+          {mode === "new" && <input type="hidden" name="mode" value="new" />}
+          <div className="flex-1"><label className={lbl} htmlFor="alloc-apt">סינון לפי דירה</label>
+            <select id="alloc-apt" name="alloc_apt" className={sel} defaultValue={allocApt ?? ""}>
+              <option value="">כל הדירות</option>
+              {apartments.map((a) => <option key={a.id} value={a.id}>דירה {a.number}</option>)}
+            </select></div>
+          <button type="submit" className="btn-primary text-sm px-4 py-2.5 min-h-[44px]">סנן</button>
+          {allocApt && <Link href={mode === "new" ? "/payments/allocate?mode=new" : "/payments/allocate"} className="inline-flex items-center min-h-[44px] text-sm text-brand-700">איפוס</Link>}
+        </form>
+        {!allocApt && <p className="text-xs text-gray-500">מוצגים עד 100 השיוכים האחרונים. לצפייה, עדכון או ביטול של שיוך ישן יותר, סננו לפי דירה.</p>}
+        {(allocs ?? []).length === 0 && <p className="text-sm text-gray-500">{allocApt ? "אין שיוכים לדירה זו." : "עדיין לא נשמרו שיוכים."}</p>}
         {(allocs ?? []).map((a: any) => {
           const voided = !!a.voided_at;
           return (
